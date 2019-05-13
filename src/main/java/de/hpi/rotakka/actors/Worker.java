@@ -1,4 +1,4 @@
-package de.hpi.octopus.actors;
+package de.hpi.rotakka.actors;
 
 import java.io.Serializable;
 
@@ -11,9 +11,9 @@ import akka.cluster.Member;
 import akka.cluster.MemberStatus;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import de.hpi.octopus.OctopusMaster;
-import de.hpi.octopus.actors.Profiler.CompletionMessage;
-import de.hpi.octopus.actors.Profiler.RegistrationMessage;
+import de.hpi.rotakka.MasterSystem;
+import de.hpi.rotakka.actors.Profiler.CompletionMessage;
+import de.hpi.rotakka.actors.Profiler.RegistrationMessage;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
@@ -88,7 +88,7 @@ public class Worker extends AbstractActor {
 	}
 
 	private void register(Member member) {
-		if (member.hasRole(OctopusMaster.MASTER_ROLE))
+		if (member.hasRole(MasterSystem.MASTER_ROLE))
 			this.getContext()
 				.actorSelection(member.address() + "/user/" + Profiler.DEFAULT_NAME)
 				.tell(new RegistrationMessage(), this.self());

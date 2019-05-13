@@ -1,4 +1,4 @@
-package de.hpi.octopus.actors;
+package de.hpi.rotakka.actors;
 
 import java.io.Serializable;
 import java.util.Arrays;
@@ -13,7 +13,7 @@ import akka.actor.Props;
 import akka.actor.Terminated;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import de.hpi.octopus.actors.Worker.WorkMessage;
+import de.hpi.rotakka.actors.Worker.WorkMessage;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 

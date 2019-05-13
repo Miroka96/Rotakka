@@ -1,13 +1,13 @@
-package de.hpi.octopus;
+package de.hpi.rotakka;
 
 import com.typesafe.config.Config;
 
 import akka.actor.ActorSystem;
 import akka.cluster.Cluster;
-import de.hpi.octopus.actors.Worker;
-import de.hpi.octopus.actors.listeners.MetricsListener;
+import de.hpi.rotakka.actors.Worker;
+import de.hpi.rotakka.actors.listeners.MetricsListener;
 
-public class OctopusSlave extends OctopusSystem {
+public class SlaveSystem extends ClusterSystem {
 
 	public static final String SLAVE_ROLE = "slave";
 	

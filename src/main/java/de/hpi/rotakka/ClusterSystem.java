@@ -1,4 +1,4 @@
-package de.hpi.octopus;
+package de.hpi.rotakka;
 
 import java.util.concurrent.TimeUnit;
 
@@ -10,7 +10,7 @@ import akka.cluster.Cluster;
 import scala.concurrent.Await;
 import scala.concurrent.duration.Duration;
 
-public class OctopusSystem {
+public class ClusterSystem {
 
 	protected static Config createConfiguration(String actorSystemName, String actorSystemRole, String host, int port, String masterhost, int masterport) {
 		

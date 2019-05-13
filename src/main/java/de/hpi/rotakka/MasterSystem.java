@@ -1,4 +1,4 @@
-package de.hpi.octopus;
+package de.hpi.rotakka;
 
 import java.util.Scanner;
 
@@ -7,11 +7,11 @@ import com.typesafe.config.Config;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.cluster.Cluster;
-import de.hpi.octopus.actors.Profiler;
-import de.hpi.octopus.actors.Worker;
-import de.hpi.octopus.actors.listeners.ClusterListener;
+import de.hpi.rotakka.actors.Profiler;
+import de.hpi.rotakka.actors.Worker;
+import de.hpi.rotakka.actors.listeners.ClusterListener;
 
-public class OctopusMaster extends OctopusSystem {
+public class MasterSystem extends ClusterSystem {
 	
 	public static final String MASTER_ROLE = "master";
 

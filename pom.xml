@@ -3,9 +3,9 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
 	<modelVersion>4.0.0</modelVersion>
-	<artifactId>octopus</artifactId>
+	<artifactId>rotakka</artifactId>
 	<groupId>hpi.de</groupId>
-	<name>Octopus Data Profiling</name>
+	<name>Rotating Proxy Crawler</name>
 	<version>1.0</version>
 
 	<properties>
@@ -112,7 +112,7 @@
 							<transformers>
 								<transformer
 									implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-									<mainClass>de.hpi.octopus.OctopusApp</mainClass>
+									<mainClass>de.hpi.rotakka.MainApp</mainClass>
 								</transformer>
 								<transformer
 									implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">

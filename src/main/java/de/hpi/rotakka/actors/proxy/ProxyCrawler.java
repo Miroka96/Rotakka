@@ -1,9 +1,11 @@
-package de.hpi.rotakka.actors;
+package de.hpi.rotakka.actors.proxy;
 
 import akka.actor.AbstractActor;
 import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 
 import java.io.Serializable;
 
@@ -16,15 +18,18 @@ public class ProxyCrawler extends AbstractActor {
         return Props.create(ProxyCrawler.class);
     }
 
+    @Data
+    @AllArgsConstructor
     public static final class ExtractProxies implements Serializable {
-        final String URL;
-
-        public ExtractProxies(String URL) {
-            this.URL = URL;
-        }
+        public static final long serialVersionUID = 1L;
+        String url;
     }
 
-    public static final class GetProxies implements Serializable {}
+    @Data
+    @AllArgsConstructor
+    public static final class GetProxies implements Serializable {
+        public static final long serialVersionUID = 1L;
+    }
 
     @Override
     public void preStart() {}

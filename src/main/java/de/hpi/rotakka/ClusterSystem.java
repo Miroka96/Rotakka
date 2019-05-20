@@ -1,18 +1,19 @@
 package de.hpi.rotakka;
 
-import java.util.concurrent.TimeUnit;
-
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
-
 import akka.actor.ActorSystem;
 import akka.cluster.Cluster;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+import de.hpi.rotakka.actors.cluster.ClusterListener;
+import de.hpi.rotakka.actors.cluster.MetricsListener;
 import scala.concurrent.Await;
 import scala.concurrent.duration.Duration;
 
+import java.util.concurrent.TimeUnit;
+
 public class ClusterSystem {
 
-	protected static Config createConfiguration(String actorSystemName, String actorSystemRole, String host, int port, String masterhost, int masterport) {
+	static Config createConfiguration(String actorSystemName, String actorSystemRole, String host, int port, String masterhost, int masterport) {
 		
 		// Create the Config with fallback to the application config
 		return ConfigFactory.parseString(
@@ -22,10 +23,10 @@ public class ClusterSystem {
 				"akka.remote.artery.canonical.port = " + port + "\n" +
 				"akka.cluster.roles = [" + actorSystemRole + "]\n" +
 				"akka.cluster.seed-nodes = [\"akka://" + actorSystemName + "@" + masterhost + ":" + masterport + "\"]")
-			.withFallback(ConfigFactory.load("octopus"));
+				.withFallback(ConfigFactory.load("rotakka"));
 	}
-	
-	protected static ActorSystem createSystem(String actorSystemName, Config config) {
+
+	static ActorSystem createSystem(String actorSystemName, Config config) {
 		
 		// Create the ActorSystem
 		final ActorSystem system = ActorSystem.create(actorSystemName, config);
@@ -58,5 +59,10 @@ public class ClusterSystem {
 		});
 		
 		return system;
+	}
+
+	static void addSystemSingletons(ActorSystem system) {
+		system.actorOf(ClusterListener.props(), ClusterListener.DEFAULT_NAME);
+		system.actorOf(MetricsListener.props(), MetricsListener.DEFAULT_NAME);
 	}
 }

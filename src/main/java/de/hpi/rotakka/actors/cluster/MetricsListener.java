@@ -1,41 +1,23 @@
-package de.hpi.rotakka.actors.listeners;
+package de.hpi.rotakka.actors.cluster;
 
-import akka.actor.AbstractActor;
 import akka.actor.Props;
-import akka.cluster.Cluster;
 import akka.cluster.ClusterEvent.CurrentClusterState;
 import akka.cluster.metrics.ClusterMetricsChanged;
+import akka.cluster.metrics.ClusterMetricsExtension;
 import akka.cluster.metrics.NodeMetrics;
 import akka.cluster.metrics.StandardMetrics;
-import akka.cluster.metrics.StandardMetrics.HeapMemory;
 import akka.cluster.metrics.StandardMetrics.Cpu;
-import akka.cluster.metrics.ClusterMetricsExtension;
-import akka.event.Logging;
-import akka.event.LoggingAdapter;
+import akka.cluster.metrics.StandardMetrics.HeapMemory;
+import de.hpi.rotakka.actors.ClusterActor;
 
-public class MetricsListener extends AbstractActor {
+public class MetricsListener extends ClusterActor {
 
-	////////////////////////
-	// Actor Construction //
-	////////////////////////
-	
-	public static final String DEFAULT_NAME = "metricsListener";
-
+	public static String DEFAULT_NAME = "metricsListener";
 	public static Props props() {
 		return Props.create(MetricsListener.class);
 	}
 
-	/////////////////
-	// Actor State //
-	/////////////////
-	
-	private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
-	private final Cluster cluster = Cluster.get(getContext().system());
 	private final ClusterMetricsExtension extension = ClusterMetricsExtension.get(getContext().system());
-
-	/////////////////////
-	// Actor Lifecycle //
-	/////////////////////
 	
 	@Override
 	public void preStart() {
@@ -46,10 +28,6 @@ public class MetricsListener extends AbstractActor {
 	public void postStop() {
 		this.extension.unsubscribe(self());
 	}
-
-	////////////////////
-	// Actor Behavior //
-	////////////////////
 	
 	@Override
 	public Receive createReceive() {

@@ -1,29 +1,26 @@
-package de.hpi.rotakka.actors;
+package de.hpi.rotakka.actors.proxy;
 
-import akka.actor.AbstractActor;
 import akka.actor.Props;
-import akka.event.Logging;
-import akka.event.LoggingAdapter;
+import de.hpi.rotakka.actors.LoggingActor;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 
 import java.io.Serializable;
 
-public class ProxyChecker extends AbstractActor {
+public class ProxyChecker extends LoggingActor {
 
     public static final String DEFAULT_NAME = "proxyChecker";
-    private final LoggingAdapter log = Logging.getLogger(getContext().getSystem(), this);
 
     public static Props props() {
         return Props.create(ProxyChecker.class);
     }
 
-    public static final class CheckProxyAdress implements Serializable {
-        final String IP;
-        final int port;
-
-        public CheckProxyAdress(String IP, int port) {
-            this.IP = IP;
-            this.port = port;
-        }
+    @Data
+    @AllArgsConstructor
+    public static final class CheckProxyAddress implements Serializable {
+        public static final long serialVersionUID = 1L;
+        String ip;
+        int port;
     }
 
     @Override
@@ -36,7 +33,7 @@ public class ProxyChecker extends AbstractActor {
     public Receive createReceive() {
         return receiveBuilder()
                 .match(
-                        CheckProxyAdress.class,
+                        CheckProxyAddress.class,
                         r -> {
                             log.info("Got Message to check Proxy");
                         })

@@ -4,10 +4,14 @@ import akka.actor.AbstractActor;
 import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import de.hpi.rotakka.actors.proxy.utility.Crawler;
+import de.hpi.rotakka.actors.proxy.websites.CrawlerFreeProxyCZ;
+import de.hpi.rotakka.actors.proxy.utility.Proxy;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.io.Serializable;
+import java.util.List;
 
 public class ProxyCrawler extends AbstractActor {
 
@@ -47,5 +51,20 @@ public class ProxyCrawler extends AbstractActor {
                 .build();
 
 
+    }
+
+    // WIP; Not used ATM
+    private void crawlURL(ExtractProxies message) {
+        String url = message.getUrl();
+
+        Crawler crawler = null;
+        if (url.startsWith("http://free-proxy.cz/")) {
+            crawler = new CrawlerFreeProxyCZ();
+        }
+        else {
+            log.error("Could not find a matching crawler to that URL");
+        }
+
+        List<Proxy> proxies = crawler.extract(url);
     }
 }

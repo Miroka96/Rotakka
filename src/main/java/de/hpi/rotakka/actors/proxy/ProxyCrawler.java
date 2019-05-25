@@ -47,7 +47,7 @@ public class ProxyCrawler extends AbstractActor {
     @Override
     public Receive createReceive() {
         return receiveBuilder().match(
-                ExtractProxies.class, r -> this.crawl(r.getCrawlerName()))
+                ExtractProxies.class, (ExtractProxies r) -> this.crawl(r.crawlerName))
                 .build();
     }
 

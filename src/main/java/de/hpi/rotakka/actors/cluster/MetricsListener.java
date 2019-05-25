@@ -49,14 +49,14 @@ public class MetricsListener extends ClusterActor {
 	private void logHeap(NodeMetrics nodeMetrics) {
 		HeapMemory heap = StandardMetrics.extractHeapMemory(nodeMetrics);
 		if (heap != null) {
-			this.log.info("Used heap: {} MB", ((double) heap.used()) / 1024 / 1024);
+			this.log.debug("Used heap: {} MB", ((double) heap.used()) / 1024 / 1024);
 		}
 	}
 
 	private void logCpu(NodeMetrics nodeMetrics) {
 		Cpu cpu = StandardMetrics.extractCpu(nodeMetrics);
 		if (cpu != null && cpu.systemLoadAverage().isDefined()) {
-			this.log.info("Load: {} ({} processors)", cpu.systemLoadAverage().get(), cpu.processors());
+			this.log.debug("Load: {} ({} processors)", cpu.systemLoadAverage().get(), cpu.processors());
 		}
 	}
 }

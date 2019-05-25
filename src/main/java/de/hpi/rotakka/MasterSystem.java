@@ -7,6 +7,8 @@ import akka.cluster.Cluster;
 import com.typesafe.config.Config;
 import de.hpi.rotakka.actors.Initiator;
 
+import java.util.EventListener;
+
 class MasterSystem extends ClusterSystem {
 
 	static final String MASTER_ROLE = "master";
@@ -29,9 +31,8 @@ class MasterSystem extends ClusterSystem {
 			//			new AdaptiveLoadBalancingPool(SystemLoadAverageMetricsSelector.getInstance(), 0),
 			//			new ClusterRouterPoolSettings(10000, workers, true, new HashSet<>(Arrays.asList("master", "slave"))))
 			//		.props(Props.create(Worker.class)), "router");
+
+			system.actorSelection("/user/" + Initiator.DEFAULT_NAME).tell(new Initiator.RunConfiguration(), ActorRef.noSender());
 		});
-
-
-		system.actorSelection("/user/" + Initiator.DEFAULT_NAME).tell(new Initiator.RunConfiguration(), ActorRef.noSender());
 	}
 }

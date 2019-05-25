@@ -52,6 +52,10 @@ public class ProxyCrawler extends AbstractActor {
     }
 
     // ToDo: We could think about micro-batching this instead of scraping all and then adding it
+    /**
+     * This method will determine which crawler should be started by performing a string check and then
+     * calling the extract() of the specific crawler
+     */
     private void crawl(String crawlerName) {
         Crawler crawler;
         if(crawlerName.equals("CrawlerFreeProxyCZ")) {

@@ -20,6 +20,10 @@ public class RotakkaProxy {
         this.protocol = protocol;
     }
 
+    /**
+     * This method will return a java.net.Proxy object which is usually used when querying websites when
+     * using java. The main thing happening here is the parsing of the protocol.
+     */
     public java.net.Proxy getProxyObject() {
         Proxy.Type type;
         // HTTP, HTTPS, FTP

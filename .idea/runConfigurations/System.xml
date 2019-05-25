@@ -1,0 +1,7 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="System" type="Multirun" factoryName="Multirun" separateTabs="true" startOneByOne="true" markFailedProcess="true" hideSuccessProcess="false" delayTime="1">
+    <runConfiguration name="Master" type="Application" />
+    <runConfiguration name="Slave" type="Application" />
+    <method v="2" />
+  </configuration>
+</component>

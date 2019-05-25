@@ -1,0 +1,115 @@
+// paste into sequencediagram.org
+
+title Rotakka
+participant Master
+actor Initiator
+actor ProxyChecker
+actor ProxySyncer
+actor ProxyCrawler
+actor ProxyCrawlerTaskDistributor
+database Replicator
+actor WebsiteCrawlerTaskDistributor
+actor WebsiteCrawler
+
+entryspacing 0.7
+Master->>Initiator: DistributeConfiguration
+
+Initiator->>ProxyCrawlerTaskDistributor: EnableCrawlers
+note over ProxyCrawlerTaskDistributor: put proxy crawling tasks\ninto local task queue
+note right of ProxyCrawlerTaskDistributor: task queue should be an ordered set\nlater random access and updates are required
+note over ProxyCrawlerTaskDistributor:eventually perform redundancy checking, somehow...
+note right of ProxyCrawlerTaskDistributor:reply to sender
+ProxyCrawlerTaskDistributor-->>Initiator:EnabledCrawlers
+
+note over ProxyCrawlerTaskDistributor: request now and on schedule
+ProxyCrawlerTaskDistributor->>ProxyCrawlerTaskDistributor: BalanceGlobalProxyCrawlingTasksQueue
+
+note over ProxyCrawlerTaskDistributor: add sender to balancing response queue
+
+ProxyCrawlerTaskDistributor->>Replicator: GetProxyCrawlerTaskQueueSize
+Replicator-->>ProxyCrawlerTaskDistributor: ProxyCrawlerTaskQueueSize
+
+note right of ProxyCrawlerTaskDistributor: keep only some\npercentage in local queue
+
+note over ProxyCrawlerTaskDistributor: eventually fill global queue
+ProxyCrawlerTaskDistributor->>Replicator: PutProxyCrawlingTasks
+
+note over ProxyCrawlerTaskDistributor: eventually empty global queue
+ProxyCrawlerTaskDistributor->>Replicator: TakeProxyCrawlingTasks
+note right of ProxyCrawlerTaskDistributor: to be reliable in case of crashes only mark \ntask as 'worked on'
+ProxyCrawlerTaskDistributor->>Replicator: SetProxyCrawlerTaskQueueSize
+
+note over ProxyCrawlerTaskDistributor: eventually assign work to \nproxy crawlers in worker queue
+ProxyCrawlerTaskDistributor->>ProxyCrawler: ProxyCrawlingTask
+note right of ProxyCrawler:see below
+
+note over ProxyCrawlerTaskDistributor: respond to every sender in the\nresponse queue
+
+ProxyCrawlerTaskDistributor-->>ProxyCrawlerTaskDistributor: GlobalProxyCrawlingTasksQueueBalancingResult
+
+note over ProxyCrawlerTaskDistributor: throw message away - merely\nthought for external invocation
+
+
+Initiator->>WebsiteCrawlerTaskDistributor: AddCrawlingPages
+note over WebsiteCrawlerTaskDistributor: look at ProxyCrawlerTaskDistributor
+
+note right of ProxyChecker:on creation
+ProxyChecker->>ProxySyncer:GetProxyCheckingTask
+alt no work available
+note over ProxySyncer:add proxy checker to worker queue
+else work available
+note over ProxySyncer:assign work
+ProxySyncer->>ProxyChecker:ProxyCheckingTask
+note right of ProxyChecker:see below
+end
+
+note right of ProxyCrawler:on creation
+ProxyCrawler->>ProxyCrawlerTaskDistributor: GetProxyCrawlingTask
+alt no work available
+note over ProxyCrawlerTaskDistributor: add proxy crawler into worker queue
+else work available
+note over ProxyCrawlerTaskDistributor: assign work
+ProxyCrawlerTaskDistributor->>ProxyCrawler:ProxyCrawlingTask
+end
+note over ProxyCrawler: crawl proxy website
+ProxyCrawler->>ProxySyncer:CrawledProxies
+ProxyCrawler-->>ProxyCrawlerTaskDistributor: ProxyCrawlingTaskStatus
+note over ProxyCrawlerTaskDistributor:update task status
+note over ProxyCrawlerTaskDistributor:if task failed, remove it globally
+ProxyCrawlerTaskDistributor->>Replicator: RemoveProxyCrawlingTask
+
+note over ProxySyncer:unite proxies with already known ones
+note over ProxySyncer:add unknown proxies to unknown status set
+note right of ProxySyncer:make previously unknown \nProxies globally known
+ProxySyncer->>Replicator:PutProxyCheckingTasks
+
+note over ProxySyncer: [again] balance with global proxy checking task queue \non schedule
+note right of ProxySyncer: keep only some percentage \nas local jobs
+ProxySyncer->>Replicator:Put/TakeProxyCheckingTasks
+
+
+
+loop available workers and available work
+ProxySyncer->>ProxyChecker: ProxyCheckingTask
+end
+alt not enough work
+note over ProxySyncer: trigger global rebalancing
+note right of ProxySyncer: will automatically assign \nwork if new work is found
+end
+note over ProxyChecker: check proxy
+ProxyChecker-->>ProxySyncer:ProxyAvailability
+
+//TODO
+note right of ProxySyncer: add Proxy\nto Queue
+ProxySyncer->>Replicator: SetProxyAvailability
+note right of ProxySyncer: get proxies\non schedule
+ProxySyncer->>Replicator: GetProxies
+Replicator-->>ProxySyncer: Proxies
+note right of ProxySyncer: update available Proxies
+
+WebsiteCrawler->>WebsiteCrawlerTaskDistributor:  GetWebsiteCrawlingTask
+WebsiteCrawlerTaskDistributor-->>WebsiteCrawler: WebsiteCrawlingTask
+
+WebsiteCrawler->>ProxySyncer: GetProxy
+ProxySyncer-->>WebsiteCrawler: Proxy
+note right of WebsiteCrawler: crawl website

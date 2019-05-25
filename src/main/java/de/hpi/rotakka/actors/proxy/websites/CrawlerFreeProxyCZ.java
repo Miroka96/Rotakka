@@ -1,12 +1,13 @@
 package de.hpi.rotakka.actors.proxy.websites;
 
 import de.hpi.rotakka.actors.proxy.utility.Crawler;
-import de.hpi.rotakka.actors.proxy.utility.Proxy;
+import de.hpi.rotakka.actors.proxy.utility.RotakkaProxy;
 import org.apache.commons.codec.binary.Base64;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,8 +17,8 @@ public class CrawlerFreeProxyCZ extends Crawler {
     // Proof of concept class
 
     @Override
-    public List<Proxy> extract(String url) {
-        List<Proxy> proxies = new ArrayList<>();
+    public List<RotakkaProxy> extract() {
+        List<RotakkaProxy> proxies = new ArrayList<>();
 
         for(int i = 1; i < 4; i++) {
             String nextPage = this.baseURL+i;
@@ -30,8 +31,8 @@ public class CrawlerFreeProxyCZ extends Crawler {
                         String base_64_ip = trElement.select("td[style=\"text-align:center\"] script").html().split("\"")[1].replaceAll("\"", "");
                         Base64 base64 = new Base64();
                         String ip = new String(base64.decode(base_64_ip.getBytes()));
-                        String port = trElement.select("span[class=fport]").text();
-                        proxies.add(new Proxy(ip, port));
+                        int port = Integer.parseInt(trElement.select("span[class=fport]").text());
+                        proxies.add(new RotakkaProxy(ip, port, "HTTP"));
                     }
                 }
             }

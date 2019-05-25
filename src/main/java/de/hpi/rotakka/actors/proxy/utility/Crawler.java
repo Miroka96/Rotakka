@@ -18,8 +18,8 @@ public abstract class Crawler {
         java.util.logging.Logger.getLogger("com.gargoylesoftware").setLevel(Level.OFF);
     }
 
-    // Extract the infos from website
-    public abstract List<Proxy> extract(String url);
+    // Extract the infos from a specific website
+    public abstract List<RotakkaProxy> extract();
 
     public Document get(String url) {
         Document doc = new Document("");

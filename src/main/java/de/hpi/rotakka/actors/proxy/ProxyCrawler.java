@@ -5,28 +5,31 @@ import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import de.hpi.rotakka.actors.proxy.utility.Crawler;
+import de.hpi.rotakka.actors.proxy.utility.RotakkaProxy;
 import de.hpi.rotakka.actors.proxy.websites.CrawlerFreeProxyCZ;
-import de.hpi.rotakka.actors.proxy.utility.Proxy;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 
 public class ProxyCrawler extends AbstractActor {
 
     public static final String DEFAULT_NAME = "proxyCrawler";
     private final LoggingAdapter log = Logging.getLogger(getContext().getSystem(), this);
-
     public static Props props() {
         return Props.create(ProxyCrawler.class);
     }
 
+    private List<RotakkaProxy> proxyStore = new ArrayList<>();
+
     @Data
     @AllArgsConstructor
     public static final class ExtractProxies implements Serializable {
+        // Take the specific crawler and extract all proxies from that website
         public static final long serialVersionUID = 1L;
-        String url;
+        String crawlerName;
     }
 
     @Data
@@ -44,27 +47,21 @@ public class ProxyCrawler extends AbstractActor {
     @Override
     public Receive createReceive() {
         return receiveBuilder().match(
-                ExtractProxies.class,
-                r -> {
-                    log.info("Recieved Message to Extract proxies");
-                })
+                ExtractProxies.class, r -> this.crawl(r.getCrawlerName()))
                 .build();
-
-
     }
 
-    // WIP; Not used ATM
-    private void crawlURL(ExtractProxies message) {
-        String url = message.getUrl();
-
-        Crawler crawler = null;
-        if (url.startsWith("http://free-proxy.cz/")) {
+    // ToDo: We could think about micro-batching this instead of scraping all and then adding it
+    private void crawl(String crawlerName) {
+        Crawler crawler;
+        if(crawlerName.equals("CrawlerFreeProxyCZ")) {
             crawler = new CrawlerFreeProxyCZ();
         }
         else {
-            log.error("Could not find a matching crawler to that URL");
+            log.error("FATAL: Proxy Crawler Class not found");
+            return;
         }
-
-        List<Proxy> proxies = crawler.extract(url);
+        List<RotakkaProxy> proxies = crawler.extract();
+        this.proxyStore.addAll(proxies);
     }
 }

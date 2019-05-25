@@ -11,10 +11,12 @@ import java.net.URLConnection;
 public class MainTest {
 
     public static void main(String[] args) {
-        //CrawlerFreeProxyCZ crawler = new CrawlerFreeProxyCZ();
 
-        // This works and gives back ~90 Proxies
+        // Test the Proxy Crawler
+        //CrawlerFreeProxyCZ crawler = new CrawlerFreeProxyCZ();
         //List<RotakkaProxy> proxies = crawler.extract();
+
+        // Test the new availablility check
         try {
             RotakkaProxy proxy = new RotakkaProxy("192.33.31.130", 80, "HTTP");
             InetAddress address = InetAddress.getByName(proxy.getIp());

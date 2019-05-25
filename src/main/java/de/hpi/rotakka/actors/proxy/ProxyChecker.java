@@ -8,7 +8,9 @@ import lombok.Data;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.net.*;
+import java.net.InetAddress;
+import java.net.URL;
+import java.net.URLConnection;
 
 public class ProxyChecker extends LoggingActor {
 
@@ -35,11 +37,29 @@ public class ProxyChecker extends LoggingActor {
     public Receive createReceive() {
         return receiveBuilder()
                 .match(
-                        CheckProxyAddress.class, r -> this.isReachable(r.getProxy()))
+                        CheckProxyAddress.class, msg -> handleCheckProxyAddress(msg))
                 .build();
     }
 
-    private boolean isReachable(RotakkaProxy proxy) {
+    /**
+     * This method will handle the CheckProxyAddress message
+     */
+    private void handleCheckProxyAddress(CheckProxyAddress message) {
+        RotakkaProxy proxy = message.getProxy();
+        if(isReachable(proxy)) {
+            long respTime = averageResponseTime(proxy);
+            if(respTime >= 0) {
+                proxy.setAverageResponseTime(respTime);
+            }
+            //ToDo: Sent a message back to the Syncher/DataStore with the checked proxy
+            //      It is debatable whether we should also save proxies which have failed the check
+        }
+    }
+
+    /**
+     * This method will determine whether a proxy is reachable (i.e. ICMP check)
+     */
+    private Boolean isReachable(RotakkaProxy proxy) {
         try {
             InetAddress address = InetAddress.getByName(proxy.getIp());
             boolean reachable = address.isReachable(10000);
@@ -52,9 +72,31 @@ public class ProxyChecker extends LoggingActor {
             }
         }
         catch(IOException e) {
-            log.error("Proxy is not reachable");
-            log.error(e.getMessage());
+            return false;
         }
         return false;
+    }
+
+    /**
+     * This method will calculate the average response time of a proxy over 5 samples to Google
+     */
+    private long averageResponseTime(RotakkaProxy proxy) {
+        try {
+            long timeDifference = 0;
+            int checks = 5;
+            for (int i = 0; i < checks; i++) {
+                Long startTime = System.currentTimeMillis();
+                URLConnection connection = new URL("http://www.google.com").openConnection(proxy.getProxyObject());
+                connection.setConnectTimeout(10000);
+                connection.connect();
+                Object content = connection.getContent();
+                Long endTime = System.currentTimeMillis();
+                timeDifference += (endTime-startTime);
+            }
+            return timeDifference / checks;
+        }
+        catch(IOException e) {
+            return -1;
+        }
     }
 }

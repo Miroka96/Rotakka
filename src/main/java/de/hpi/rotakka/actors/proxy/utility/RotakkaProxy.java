@@ -1,21 +1,24 @@
 package de.hpi.rotakka.actors.proxy.utility;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
 import lombok.Getter;
-import scala.Int;
+import lombok.Setter;
 
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.util.logging.Logger;
 
-@Data
 @Getter
-@AllArgsConstructor
 public class RotakkaProxy {
-    String ip;
-    Integer port;
-    String protocol;
+    private final String ip;
+    private final int port;
+    private final String protocol;
+    @Setter private long averageResponseTime;
+
+    public RotakkaProxy(String ip, int port, String protocol) {
+        this.ip = ip;
+        this.port = port;
+        this.protocol = protocol;
+    }
 
     public java.net.Proxy getProxyObject() {
         Proxy.Type type;

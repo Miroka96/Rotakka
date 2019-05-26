@@ -26,7 +26,7 @@ ProxyCrawlerTaskDistributor->>ProxyCrawlerTaskDistributor: BalanceGlobalProxyCra
 else on schedule
 [->>ProxyCrawlerTaskDistributor: BalanceGlobalProxyCrawlingTasksQueue
 end
-expandable+ BalanceDistributedTaskQueue
+expandable− BalanceDistributedTaskQueue
 note over ProxyCrawlerTaskDistributor: add sender to balancing response queue
 
 ProxyCrawlerTaskDistributor->>Replicator: GetProxyCrawlerTaskQueueSize
@@ -84,7 +84,7 @@ ref over WebsiteCrawler:WebsiteCrawlingTask
 end
 end
 
-expandable- ExecuteProxyCrawlingTask
+expandable- ExecutingProxyCrawlingTask
 [-->>ProxyCrawler:on creation
 ProxyCrawler->>ProxyCrawlerTaskDistributor: GetProxyCrawlingTask
 alt no work available
@@ -122,7 +122,7 @@ end
 end
 end
 
-expandable- ExecuteProxyCheckingTask
+expandable- ExecutingProxyCheckingTask
 [-->>ProxyChecker:on creation
 ProxyChecker->>ProxySyncer:GetProxyCheckingTask
 alt no work available
@@ -130,29 +130,57 @@ note over ProxySyncer:add proxy checker to worker queue
 else work available
 note over ProxySyncer:assign work
 ProxySyncer->>ProxyChecker:ProxyCheckingTask
-ref over ProxyChecker:ProxyCheckingTask
-end
+
 
 group ProxyCheckingTask
-ProxySyncer->>ProxyChecker: ProxyCheckingTask
 note over ProxyChecker: check proxy
 ProxyChecker-->>ProxySyncer:ProxyAvailability
 note over ProxySyncer: add Proxy\nto Queue
 ProxySyncer->>Replicator: SetProxyAvailability
+loop waiting-for-proxy queue
+note over ProxySyncer: remove crawler from queue
+note over ProxySyncer: assign Proxy to crawler
+note right of ProxySyncer: overprovisioning should later be possible\n(multiple crawlers per proxy)
+ProxySyncer-->WebsiteCrawler:Proxy
+ref over WebsiteCrawler:GetWebsiteCrawlingTask
 end
+alt now
+	ProxySyncer->>ProxySyncer: SyncProxies
+else on schedule
+	[->>ProxySyncer: SyncProxies
 end
 
-group GetProxies
-[->>ProxySyncer: on schedule
 ProxySyncer->>Replicator: GetProxies
 Replicator-->>ProxySyncer: Proxies
-note over ProxySyncer: update available Proxies
+note over ProxySyncer: merge/update available Proxies
+end
+end
 end
 
-WebsiteCrawler->>WebsiteCrawlerTaskDistributor:  GetWebsiteCrawlingTask
-WebsiteCrawlerTaskDistributor-->>WebsiteCrawler: WebsiteCrawlingTask
+expandable- ExecutingWebsiteCrawlingTask
+[-->WebsiteCrawler: on creation
+
 
 WebsiteCrawler->>ProxySyncer: GetProxy
+alt proxy not available
+note over ProxySyncer: put crawler into waiting-for-proxy queue
+else proxy available
+note over ProxySyncer: assign Proxy to Crawler
 ProxySyncer-->>WebsiteCrawler: Proxy
-note over WebsiteCrawler: crawl website
 
+group GetWebsiteCrawlingTask
+WebsiteCrawler->>WebsiteCrawlerTaskDistributor:  GetWebsiteCrawlingTask
+//TODO
+alt no work available
+note over WebsiteCrawlerTaskDistributor:add website crawler to worker queue
+else work available
+WebsiteCrawlerTaskDistributor->>WebsiteCrawler: WebsiteCrawlingTask
+group WebsiteCrawlingTask
+
+
+note over WebsiteCrawler: crawl website
+end
+end
+end
+end
+end

@@ -135,8 +135,11 @@ ProxySyncer->>ProxyChecker:ProxyCheckingTask
 group ProxyCheckingTask
 note over ProxyChecker: check proxy
 ProxyChecker-->>ProxySyncer:ProxyAvailability
-note over ProxySyncer: add Proxy\nto Queue
+group ProxyAvailabilityProcessing
+alt working proxy
+note over ProxySyncer: add Proxy to Queue
 ProxySyncer->>Replicator: SetProxyAvailability
+
 loop waiting-for-proxy queue
 note over ProxySyncer: remove crawler from queue
 note over ProxySyncer: assign Proxy to crawler
@@ -144,15 +147,22 @@ note right of ProxySyncer: overprovisioning should later be possible\n(multiple 
 ProxySyncer-->WebsiteCrawler:Proxy
 ref over WebsiteCrawler:GetWebsiteCrawlingTask
 end
+
+else not working proxy
+note over ProxySyncer: remove proxy from queue
+ProxySyncer->>Replicator:BlacklistProxy
+end
+
 alt now
-	ProxySyncer->>ProxySyncer: SyncProxies
+    ProxySyncer->>ProxySyncer: SyncProxies
 else on schedule
-	[->>ProxySyncer: SyncProxies
+    [->>ProxySyncer: SyncProxies
 end
 
 ProxySyncer->>Replicator: GetProxies
 Replicator-->>ProxySyncer: Proxies
 note over ProxySyncer: merge/update available Proxies
+end
 end
 end
 end
@@ -170,15 +180,37 @@ ProxySyncer-->>WebsiteCrawler: Proxy
 
 group GetWebsiteCrawlingTask
 WebsiteCrawler->>WebsiteCrawlerTaskDistributor:  GetWebsiteCrawlingTask
-//TODO
+
+group AssignWebsiteCrawlingTask
 alt no work available
 note over WebsiteCrawlerTaskDistributor:add website crawler to worker queue
 else work available
+note over WebsiteCrawlerTaskDistributor:assign task to crawler\nmark task as worked on
 WebsiteCrawlerTaskDistributor->>WebsiteCrawler: WebsiteCrawlingTask
+
 group WebsiteCrawlingTask
-
-
 note over WebsiteCrawler: crawl website
+alt no success
+note right of WebsiteCrawler: increment try-counter in task message
+note right of WebsiteCrawler: increment error-counter for current proxy
+alt proxy error counter too high
+note right of WebsiteCrawler: store WebsiteCrawlingTask using an ID
+WebsiteCrawler->>ProxySyncer:InvalidateProxy (includes task ID to know where to continue)
+note right of WebsiteCrawler: now waiting for new proxy
+ref over ProxySyncer:ProxyAvailabilityProcessing
+ProxySyncer-->>WebsiteCrawler: NewProxy (including previous task ID) 
+end 
+WebsiteCrawler->>WebsiteCrawler:WebsiteCrawlingTask
+ref over WebsiteCrawler:WebsiteCrawlingTask
+else case success
+
+note right of WebsiteCrawler: reset error-counter for current proxy
+WebsiteCrawler-->>WebsiteCrawlerTaskDistributor:WebsiteCrawlingTaskStatus
+
+note over WebsiteCrawlerTaskDistributor:mark task as finished
+ref over WebsiteCrawlerTaskDistributor,WebsiteCrawler:AssignWebsiteCrawlingTask
+end
+end
 end
 end
 end

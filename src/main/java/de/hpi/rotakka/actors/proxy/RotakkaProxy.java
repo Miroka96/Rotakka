@@ -7,12 +7,12 @@ import lombok.Data;
 
 import java.io.Serializable;
 
-public class RotakkarProxy extends AbstractLoggingActor {
+public class RotakkaProxy extends AbstractLoggingActor {
 
     public static final String DEFAULT_NAME = "proxySyncher";
 
     public static Props props() {
-        return Props.create(RotakkarProxy.class);
+        return Props.create(RotakkaProxy.class);
     }
 
     @Data

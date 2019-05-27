@@ -1,5 +1,6 @@
 package de.hpi.rotakka.actors.twitter;
 
+import akka.actor.Props;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -10,6 +11,13 @@ import org.openqa.selenium.chrome.ChromeOptions;
 import static de.hpi.rotakka.actors.utils.Utility.createSeleniumWebDriver;
 
 public class TwitterCrawler {
+
+    public final static String DEFAULT_NAME = "twitter_crawler";
+
+    public static Props props() {
+        return Props.create(TwitterCrawler.class);
+    }
+
     WebDriver webDriver;
 
     public TwitterCrawler() {

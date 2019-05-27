@@ -13,7 +13,7 @@ class SlaveSystem extends ClusterSystem {
 	}
 
 
-	void startActors() {
+	void addCustomActors() {
 
 		//system.actorOf(Initiator.props(), Initiator.DEFAULT_NAME);
 

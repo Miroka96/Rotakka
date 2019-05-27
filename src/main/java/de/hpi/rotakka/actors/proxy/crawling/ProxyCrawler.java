@@ -62,7 +62,7 @@ public class ProxyCrawler extends AbstractActor {
             crawler = new CrawlerFreeProxyCZ();
         }
         else {
-            log.error("FATAL: Proxy Crawler Class not found");
+            log.error("FATAL: RotakkarProxy Crawler Class not found");
             return;
         }
         List<ProxyWrapper> proxies = crawler.extract();

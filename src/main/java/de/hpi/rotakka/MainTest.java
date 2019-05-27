@@ -32,7 +32,7 @@ public class MainTest {
         }
 
         TwitterCrawler twC = new TwitterCrawler();
-        twC.testMe("https://twitter.com/elonmusk");
+        twC.extract("https://twitter.com/elonmusk");
         // Test the RotakkarProxy Crawler
         //CrawlerFreeProxyLists crawler = new CrawlerFreeProxyLists();
         //&List<RotakkaProxy> proxies = crawler.extract();

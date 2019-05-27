@@ -1,10 +1,12 @@
 package de.hpi.rotakka;
 
+import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.PoisonPill;
 import akka.cluster.Cluster;
 import akka.cluster.singleton.ClusterSingletonManager;
 import akka.cluster.singleton.ClusterSingletonManagerSettings;
+import akka.cluster.singleton.ClusterSingletonProxy;
 import akka.cluster.singleton.ClusterSingletonProxySettings;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -25,6 +27,7 @@ import de.hpi.rotakka.actors.twitter.WebsiteCrawlingScheduler;
 import scala.concurrent.Await;
 import scala.concurrent.duration.Duration;
 
+import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
 
 abstract class ClusterSystem {
@@ -102,6 +105,19 @@ abstract class ClusterSystem {
 		});
 	}
 
+    private HashMap<String, ActorRef> proxies;
+
+    private void addProxy(String singletonName) {
+        String singletonManagerPath = "/user/" + singletonName;
+        proxies.put(
+                singletonManagerPath,
+                system.actorOf(
+                        ClusterSingletonProxy.props(
+                                singletonManagerPath,
+                                clusterSingletonProxySettings
+                        ), singletonName + "Proxy"));
+    }
+
 	private void addDefaultActors() {
 		////////////// Singleton Managers /////////////////
 		system.actorOf(
@@ -110,6 +126,7 @@ abstract class ClusterSystem {
 						PoisonPill.getInstance(),
 						clusterSingletonManagerSettings),
 				ProxyCheckingGateway.DEFAULT_NAME);
+        addProxy(ProxyCheckingGateway.DEFAULT_NAME);
 
 		system.actorOf(
 				ClusterSingletonManager.props(
@@ -117,6 +134,7 @@ abstract class ClusterSystem {
 						PoisonPill.getInstance(),
 						clusterSingletonManagerSettings),
 				ProxyCheckingScheduler.DEFAULT_NAME);
+        addProxy(ProxyCheckingScheduler.DEFAULT_NAME);
 
 		system.actorOf(
 				ClusterSingletonManager.props(
@@ -124,6 +142,7 @@ abstract class ClusterSystem {
 						PoisonPill.getInstance(),
 						clusterSingletonManagerSettings),
 				ProxyCrawlingGateway.DEFAULT_NAME);
+        addProxy(ProxyCrawlingGateway.DEFAULT_NAME);
 
 		system.actorOf(
 				ClusterSingletonManager.props(
@@ -131,6 +150,7 @@ abstract class ClusterSystem {
 						PoisonPill.getInstance(),
 						clusterSingletonManagerSettings),
 				ProxyCrawlingScheduler.DEFAULT_NAME);
+        addProxy(ProxyCrawlingScheduler.DEFAULT_NAME);
 
 		system.actorOf(
 				ClusterSingletonManager.props(
@@ -138,6 +158,7 @@ abstract class ClusterSystem {
 						PoisonPill.getInstance(),
 						clusterSingletonManagerSettings),
 				WebsiteCrawlingGateway.DEFAULT_NAME);
+        addProxy(WebsiteCrawlingGateway.DEFAULT_NAME);
 
 		system.actorOf(
 				ClusterSingletonManager.props(
@@ -145,6 +166,7 @@ abstract class ClusterSystem {
 						PoisonPill.getInstance(),
 						clusterSingletonManagerSettings),
 				WebsiteCrawlingScheduler.DEFAULT_NAME);
+        addProxy(WebsiteCrawlingScheduler.DEFAULT_NAME);
 
 		system.actorOf(
 				ClusterSingletonManager.props(
@@ -152,6 +174,7 @@ abstract class ClusterSystem {
 						PoisonPill.getInstance(),
 						clusterSingletonManagerSettings),
 				GraphStoreMaster.DEFAULT_NAME);
+        addProxy(GraphStoreMaster.DEFAULT_NAME);
 
 		//////////////// worker actors ///////////////////////////////////////
 
@@ -162,7 +185,6 @@ abstract class ClusterSystem {
 		system.actorOf(ProxyCrawler.props(), ProxyCrawler.DEFAULT_NAME);
 		system.actorOf(RotakkaProxy.props(), RotakkaProxy.DEFAULT_NAME);
 		system.actorOf(TwitterCrawler.props(), TwitterCrawler.DEFAULT_NAME);
-
 	}
 
 	abstract void addCustomActors();

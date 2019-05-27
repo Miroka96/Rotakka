@@ -36,12 +36,6 @@ public class CrawlerFreeProxyLists extends Crawler {
                 proxies.add(new RotakkaProxy(ip, port, protocol));
             }
         }
-
-        for(int i = 1; i < 4; i++) {
-            String nextPage = this.baseURL+i;
-
-
-        }
         return proxies;
     }
 

@@ -10,15 +10,15 @@ import java.net.UnknownHostException;
 
 public class MainApp {
 
-    private static final String ACTOR_SYSTEM_NAME = "rotakka";
+    static final String ACTOR_SYSTEM_NAME = "rotakka";
 	
 	public static void main(String[] args) {
 
     	MasterCommand masterCommand = new MasterCommand();
         SlaveCommand slaveCommand = new SlaveCommand();
         JCommander jCommander = JCommander.newBuilder()
-        	.addCommand(MasterSystem.MASTER_ROLE, masterCommand)
-            .addCommand(SlaveSystem.SLAVE_ROLE, slaveCommand)
+                .addCommand(MasterSystem.ROLE, masterCommand)
+                .addCommand(SlaveSystem.ROLE, slaveCommand)
             .build();
 
         try {
@@ -28,12 +28,15 @@ public class MainApp {
                 throw new ParameterException("No command given.");
             }
 
+            ClusterSystem system;
             switch (jCommander.getParsedCommand()) {
-                case MasterSystem.MASTER_ROLE:
-                    MasterSystem.start(ACTOR_SYSTEM_NAME, masterCommand.workers, masterCommand.host, masterCommand.port);
+                case MasterSystem.ROLE:
+                    system = new MasterSystem(masterCommand.host, masterCommand.port);
+                    system.start();
                     break;
-                case SlaveSystem.SLAVE_ROLE:
-                    SlaveSystem.start(ACTOR_SYSTEM_NAME, slaveCommand.workers, slaveCommand.host, slaveCommand.port, slaveCommand.masterhost, slaveCommand.masterport);
+                case SlaveSystem.ROLE:
+                    system = new SlaveSystem(slaveCommand.host, slaveCommand.port, slaveCommand.masterhost, slaveCommand.masterport);
+                    system.start();
                     break;
                 default:
                     throw new AssertionError();

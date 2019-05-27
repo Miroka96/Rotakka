@@ -37,7 +37,7 @@ public class ProxyChecker extends AbstractLoggingActor {
     public Receive createReceive() {
         return receiveBuilder()
                 .match(
-                        CheckProxyAddress.class, msg -> handleCheckProxyAddress(msg))
+                        CheckProxyAddress.class, this::handleCheckProxyAddress)
                 .build();
     }
 

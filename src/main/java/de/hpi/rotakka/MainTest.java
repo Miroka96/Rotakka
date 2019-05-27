@@ -1,12 +1,8 @@
 package de.hpi.rotakka;
 
-import de.hpi.rotakka.actors.proxy.utility.RotakkaProxy;
+import de.hpi.rotakka.actors.utils.RotakkaProxy;
 import de.hpi.rotakka.actors.proxy.websites.CrawlerFreeProxyLists;
 
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.URL;
-import java.net.URLConnection;
 import java.util.List;
 
 // This class can be used to test single components

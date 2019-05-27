@@ -1,4 +1,4 @@
-package de.hpi.rotakka.actors.proxy.utility;
+package de.hpi.rotakka.actors.utils;
 
 import lombok.Getter;
 import lombok.Setter;

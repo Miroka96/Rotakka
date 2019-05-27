@@ -1,13 +1,12 @@
 package de.hpi.rotakka.actors.proxy.websites;
 
-import de.hpi.rotakka.actors.proxy.utility.Crawler;
-import de.hpi.rotakka.actors.proxy.utility.RotakkaProxy;
+import de.hpi.rotakka.actors.utils.Crawler;
+import de.hpi.rotakka.actors.utils.RotakkaProxy;
 import org.apache.commons.codec.binary.Base64;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 

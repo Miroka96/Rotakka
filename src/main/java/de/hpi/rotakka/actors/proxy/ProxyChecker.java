@@ -2,7 +2,7 @@ package de.hpi.rotakka.actors.proxy;
 
 import akka.actor.Props;
 import de.hpi.rotakka.actors.LoggingActor;
-import de.hpi.rotakka.actors.proxy.utility.RotakkaProxy;
+import de.hpi.rotakka.actors.utils.RotakkaProxy;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 

@@ -1,14 +1,18 @@
-package de.hpi.rotakka.actors.proxy.utility;
+package de.hpi.rotakka.actors.utils;
 
 import com.gargoylesoftware.htmlunit.WebClient;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public abstract class Crawler {
     WebClient webClient;
@@ -19,9 +23,9 @@ public abstract class Crawler {
     }
 
     // Extract the infos from a specific website
-    public abstract List<RotakkaProxy> extract();
+    protected abstract List<RotakkaProxy> extract();
 
-    public Document get(String url) {
+    protected Document get(String url) {
         Document doc = new Document("");
         try {
             HtmlPage page = webClient.getPage(url);

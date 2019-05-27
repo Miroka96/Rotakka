@@ -1,16 +1,16 @@
 package de.hpi.rotakka;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
 import com.beust.jcommander.Parameters;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+
 public class MainApp {
 
-	public static final String ACTOR_SYSTEM_NAME = "rotakka";
+    private static final String ACTOR_SYSTEM_NAME = "rotakka";
 	
 	public static void main(String[] args) {
 
@@ -52,9 +52,9 @@ public class MainApp {
 
     abstract static class CommandBase {
 
-    	public static final int DEFAULT_MASTER_PORT = 7877;
-    	public static final int DEFAULT_SLAVE_PORT = 7879;
-        public static final int DEFAULT_WORKERS = 4;
+        static final int DEFAULT_MASTER_PORT = 7877;
+        static final int DEFAULT_SLAVE_PORT = 7879;
+        static final int DEFAULT_WORKERS = 4;
     	
     	@Parameter(names = {"-h", "--host"}, description = "this machine's host name or IP to bind against")
         String host = this.getDefaultHost();

@@ -2,17 +2,14 @@ package de.hpi.rotakka.actors.utils;
 
 import com.gargoylesoftware.htmlunit.WebClient;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import de.hpi.rotakka.actors.proxy.ProxyWrapper;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.chrome.ChromeOptions;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public abstract class Crawler {
     WebClient webClient;
@@ -23,7 +20,7 @@ public abstract class Crawler {
     }
 
     // Extract the infos from a specific website
-    protected abstract List<RotakkaProxy> extract();
+    public abstract List<ProxyWrapper> extract();
 
     protected Document get(String url) {
         Document doc = new Document("");

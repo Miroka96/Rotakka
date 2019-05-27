@@ -8,9 +8,9 @@ import akka.cluster.metrics.NodeMetrics;
 import akka.cluster.metrics.StandardMetrics;
 import akka.cluster.metrics.StandardMetrics.Cpu;
 import akka.cluster.metrics.StandardMetrics.HeapMemory;
-import de.hpi.rotakka.actors.ClusterActor;
+import de.hpi.rotakka.actors.AbstractClusterActor;
 
-public class MetricsListener extends ClusterActor {
+public class MetricsListener extends AbstractClusterActor {
 
 	public static String DEFAULT_NAME = "metricsListener";
 	public static Props props() {

@@ -1,4 +1,4 @@
-package de.hpi.rotakka.actors.utils;
+package de.hpi.rotakka.actors.proxy;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -8,13 +8,13 @@ import java.net.Proxy;
 import java.util.logging.Logger;
 
 @Getter
-public class RotakkaProxy {
+public class ProxyWrapper {
     private final String ip;
     private final int port;
     private final String protocol;
     @Setter private long averageResponseTime;
 
-    public RotakkaProxy(String ip, int port, String protocol) {
+    public ProxyWrapper(String ip, int port, String protocol) {
         this.ip = ip;
         this.port = port;
         this.protocol = protocol;

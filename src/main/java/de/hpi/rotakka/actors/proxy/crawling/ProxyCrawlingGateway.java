@@ -1,18 +1,18 @@
-package de.hpi.rotakka.actors.proxy;
+package de.hpi.rotakka.actors.proxy.crawling;
 
 import akka.actor.Props;
-import de.hpi.rotakka.actors.LoggingActor;
+import de.hpi.rotakka.actors.AbstractLoggingActor;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.io.Serializable;
 
-public class ProxySyncer extends LoggingActor {
+public class ProxyCrawlingGateway extends AbstractLoggingActor {
 
     public static final String DEFAULT_NAME = "proxySyncher";
 
     public static Props props() {
-        return Props.create(ProxySyncer.class);
+        return Props.create(ProxyCrawlingGateway.class);
     }
 
     @Data

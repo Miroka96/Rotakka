@@ -1,7 +1,7 @@
-package de.hpi.rotakka.actors.proxy.websites;
+package de.hpi.rotakka.actors.proxy.crawling.websites;
 
+import de.hpi.rotakka.actors.proxy.ProxyWrapper;
 import de.hpi.rotakka.actors.utils.Crawler;
-import de.hpi.rotakka.actors.utils.RotakkaProxy;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
@@ -14,8 +14,8 @@ public class CrawlerFreeProxyLists extends Crawler {
     String baseURL = "http://www.freeproxylists.net/?page=";
 
     @Override
-    public List<RotakkaProxy> extract() {
-        List<RotakkaProxy> proxies = new ArrayList<>();
+    public List<ProxyWrapper> extract() {
+        List<ProxyWrapper> proxies = new ArrayList<>();
         Boolean containsNext = true;
         int pageNumber = 1;
 
@@ -32,7 +32,7 @@ public class CrawlerFreeProxyLists extends Crawler {
                 String ip = row.select("a").text();
                 int port = Integer.parseInt(row.select("td[align=center]").get(0).text());
                 String protocol = row.select("td[align=center]").get(1).text();
-                proxies.add(new RotakkaProxy(ip, port, protocol));
+                proxies.add(new ProxyWrapper(ip, port, protocol));
             }
         }
         return proxies;

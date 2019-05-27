@@ -1,8 +1,8 @@
-package de.hpi.rotakka.actors.proxy;
+package de.hpi.rotakka.actors.proxy.checking;
 
 import akka.actor.Props;
-import de.hpi.rotakka.actors.LoggingActor;
-import de.hpi.rotakka.actors.utils.RotakkaProxy;
+import de.hpi.rotakka.actors.AbstractLoggingActor;
+import de.hpi.rotakka.actors.proxy.ProxyWrapper;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
@@ -12,7 +12,7 @@ import java.net.InetAddress;
 import java.net.URL;
 import java.net.URLConnection;
 
-public class ProxyChecker extends LoggingActor {
+public class ProxyChecker extends AbstractLoggingActor {
 
     public static final String DEFAULT_NAME = "proxyChecker";
 
@@ -24,7 +24,7 @@ public class ProxyChecker extends LoggingActor {
     @AllArgsConstructor
     public static final class CheckProxyAddress implements Serializable {
         public static final long serialVersionUID = 1L;
-        RotakkaProxy proxy;
+        ProxyWrapper proxy;
     }
 
     @Override
@@ -45,7 +45,7 @@ public class ProxyChecker extends LoggingActor {
      * This method will handle the CheckProxyAddress message
      */
     private void handleCheckProxyAddress(CheckProxyAddress message) {
-        RotakkaProxy proxy = message.getProxy();
+        ProxyWrapper proxy = message.proxy;
         if(isReachable(proxy)) {
             long respTime = averageResponseTime(proxy);
             if(respTime >= 0) {
@@ -59,7 +59,7 @@ public class ProxyChecker extends LoggingActor {
     /**
      * This method will determine whether a proxy is reachable (i.e. ICMP check)
      */
-    private Boolean isReachable(RotakkaProxy proxy) {
+    private Boolean isReachable(ProxyWrapper proxy) {
         try {
             InetAddress address = InetAddress.getByName(proxy.getIp());
             boolean reachable = address.isReachable(10000);
@@ -80,7 +80,7 @@ public class ProxyChecker extends LoggingActor {
     /**
      * This method will calculate the average response time of a proxy over 5 samples to Google
      */
-    private long averageResponseTime(RotakkaProxy proxy) {
+    private long averageResponseTime(ProxyWrapper proxy) {
         try {
             long timeDifference = 0;
             int checks = 5;

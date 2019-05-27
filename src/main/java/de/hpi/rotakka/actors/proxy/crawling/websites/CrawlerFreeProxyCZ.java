@@ -1,7 +1,7 @@
-package de.hpi.rotakka.actors.proxy.websites;
+package de.hpi.rotakka.actors.proxy.crawling.websites;
 
+import de.hpi.rotakka.actors.proxy.ProxyWrapper;
 import de.hpi.rotakka.actors.utils.Crawler;
-import de.hpi.rotakka.actors.utils.RotakkaProxy;
 import org.apache.commons.codec.binary.Base64;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -16,8 +16,8 @@ public class CrawlerFreeProxyCZ extends Crawler {
     // Proof of concept class
 
     @Override
-    public List<RotakkaProxy> extract() {
-        List<RotakkaProxy> proxies = new ArrayList<>();
+    public List<ProxyWrapper> extract() {
+        List<ProxyWrapper> proxies = new ArrayList<>();
 
         for(int i = 1; i < 4; i++) {
             String nextPage = this.baseURL+i;
@@ -31,7 +31,7 @@ public class CrawlerFreeProxyCZ extends Crawler {
                         Base64 base64 = new Base64();
                         String ip = new String(base64.decode(base_64_ip.getBytes()));
                         int port = Integer.parseInt(trElement.select("span[class=fport]").text());
-                        proxies.add(new RotakkaProxy(ip, port, "HTTP"));
+                        proxies.add(new ProxyWrapper(ip, port, "HTTP"));
                     }
                 }
             }

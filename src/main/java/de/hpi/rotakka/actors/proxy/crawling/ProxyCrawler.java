@@ -1,12 +1,12 @@
-package de.hpi.rotakka.actors.proxy;
+package de.hpi.rotakka.actors.proxy.crawling;
 
 import akka.actor.AbstractActor;
 import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import de.hpi.rotakka.actors.proxy.ProxyWrapper;
+import de.hpi.rotakka.actors.proxy.crawling.websites.CrawlerFreeProxyCZ;
 import de.hpi.rotakka.actors.utils.Crawler;
-import de.hpi.rotakka.actors.utils.RotakkaProxy;
-import de.hpi.rotakka.actors.proxy.websites.CrawlerFreeProxyCZ;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
@@ -22,7 +22,7 @@ public class ProxyCrawler extends AbstractActor {
         return Props.create(ProxyCrawler.class);
     }
 
-    private List<RotakkaProxy> proxyStore = new ArrayList<>();
+    private List<ProxyWrapper> proxyStore = new ArrayList<>();
 
     @Data
     @AllArgsConstructor
@@ -65,7 +65,7 @@ public class ProxyCrawler extends AbstractActor {
             log.error("FATAL: Proxy Crawler Class not found");
             return;
         }
-        List<RotakkaProxy> proxies = crawler.extract();
+        List<ProxyWrapper> proxies = crawler.extract();
         this.proxyStore.addAll(proxies);
     }
 }

@@ -1,7 +1,7 @@
 package de.hpi.rotakka;
 
-import de.hpi.rotakka.actors.utils.RotakkaProxy;
-import de.hpi.rotakka.actors.proxy.websites.CrawlerFreeProxyLists;
+import de.hpi.rotakka.actors.proxy.ProxyWrapper;
+import de.hpi.rotakka.actors.proxy.crawling.websites.CrawlerFreeProxyLists;
 
 import java.util.List;
 
@@ -12,7 +12,7 @@ public class MainTest {
 
         // Test the Proxy Crawler
         CrawlerFreeProxyLists crawler = new CrawlerFreeProxyLists();
-        List<RotakkaProxy> proxies = crawler.extract();
+        List<ProxyWrapper> proxies = crawler.extract();
         System.out.println("Found proxies: "+proxies.size());
 
         // Test the new availablility check

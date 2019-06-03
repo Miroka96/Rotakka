@@ -1,14 +1,15 @@
 package de.hpi.rotakka;
 
 import de.hpi.rotakka.actors.proxy.crawling.websites.CrawlerFreeProxyLists;
+import de.hpi.rotakka.actors.twitter.TwitterCrawler;
 
 // This class can be used to test single components
 public class MainTest {
 
     public static void main(String[] args) {
 
-        CrawlerFreeProxyLists a = new CrawlerFreeProxyLists();
-        a.extract();
+        //CrawlerFreeProxyLists a = new CrawlerFreeProxyLists();
+        //a.extract();
 
 //        // Test the new availablility check
 //        try {
@@ -28,12 +29,12 @@ public class MainTest {
 //            e.printStackTrace();
 //        }
 //
-//        TwitterCrawler twC = new TwitterCrawler();
-//        twC.extract("https://twitter.com/elonmusk");
-//        // Test the RotakkarProxy Crawler
-//        //CrawlerFreeProxyLists crawler = new CrawlerFreeProxyLists();
-//        //&List<RotakkaProxy> proxies = crawler.extract();
-//        //System.out.println("Found proxies: "+proxies.size());
+        TwitterCrawler twC = new TwitterCrawler();
+        twC.extract("https://twitter.com/elonmusk");
+        // Test the RotakkarProxy Crawler
+        //CrawlerFreeProxyLists crawler = new CrawlerFreeProxyLists();
+        //&List<RotakkaProxy> proxies = crawler.extract();
+        //System.out.println("Found proxies: "+proxies.size());
 
 
     }

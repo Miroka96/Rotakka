@@ -3,6 +3,7 @@ package de.hpi.rotakka.actors.twitter;
 import akka.actor.Props;
 import de.hpi.rotakka.actors.AbstractLoggingActor;
 import de.hpi.rotakka.actors.utils.WebDriverFactory;
+import de.hpi.rotakka.actors.utils.Tweet;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.jsoup.Jsoup;
@@ -12,6 +13,8 @@ import org.jsoup.select.Elements;
 import org.openqa.selenium.WebDriver;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
 public class TwitterCrawler extends AbstractLoggingActor {
 
@@ -37,29 +40,30 @@ public class TwitterCrawler extends AbstractLoggingActor {
                 .build();
     }
 
+    private WebDriver webDriver;
+    private List<Tweet> extracted_tweets;
+
     private void crawl(CrawlURL crawlUrl) {
         crawl(crawlUrl.url);
     }
 
     private void crawl(String url) {
         webDriver.get(url);
-
-        //List<WebElement> tweets = webDriver.findElement(By.id("stream-items-id")).findElements(By.tagName("li"));
         Document twPage = Jsoup.parse(webDriver.getPageSource());
         Elements tweets = twPage.select("ol[id=stream-items-id] li[data-item-type=tweet]");
 
         for(Element tweet : tweets) {
-            int i = 2;
-            //tweet.childNodes.get(1).attributes()
-            //tweet.select("div.tweet.js-stream-tweet.js-actionable-tweet.js-profile-popup-actionable.dismissible-content.original-tweet.js-original-tweet.tweet-has-context.has-cards.cards-forward")
+            Element tweetDiv = tweet.children().get(0);
+            tweetDiv.children().select("div[class=content]");
+            extracted_tweets.add(new Tweet(tweetDiv));
         }
-        int debug = 1;
     }
 
     @Override
     public void preStart() throws Exception {
         super.preStart();
         webDriver = WebDriverFactory.getWebDriver(log);
+        extracted_tweets = new ArrayList<>();
     }
 
     @Override

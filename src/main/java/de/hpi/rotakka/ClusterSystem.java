@@ -16,13 +16,10 @@ import de.hpi.rotakka.actors.data.graph.GraphStoreMaster;
 import de.hpi.rotakka.actors.data.graph.GraphStoreSlave;
 import de.hpi.rotakka.actors.proxy.RotakkaProxy;
 import de.hpi.rotakka.actors.proxy.checking.ProxyChecker;
-import de.hpi.rotakka.actors.proxy.checking.ProxyCheckingGateway;
 import de.hpi.rotakka.actors.proxy.checking.ProxyCheckingScheduler;
 import de.hpi.rotakka.actors.proxy.crawling.ProxyCrawler;
-import de.hpi.rotakka.actors.proxy.crawling.ProxyCrawlingGateway;
 import de.hpi.rotakka.actors.proxy.crawling.ProxyCrawlingScheduler;
 import de.hpi.rotakka.actors.twitter.TwitterCrawler;
-import de.hpi.rotakka.actors.twitter.WebsiteCrawlingGateway;
 import de.hpi.rotakka.actors.twitter.WebsiteCrawlingScheduler;
 import scala.concurrent.Await;
 import scala.concurrent.duration.Duration;
@@ -120,13 +117,6 @@ abstract class ClusterSystem {
 
 	private void addDefaultActors() {
 		////////////// Singleton Managers /////////////////
-		system.actorOf(
-				ClusterSingletonManager.props(
-						ProxyCheckingGateway.props(),
-						PoisonPill.getInstance(),
-						clusterSingletonManagerSettings),
-				ProxyCheckingGateway.DEFAULT_NAME);
-        addProxy(ProxyCheckingGateway.DEFAULT_NAME);
 
 		system.actorOf(
 				ClusterSingletonManager.props(
@@ -138,27 +128,11 @@ abstract class ClusterSystem {
 
 		system.actorOf(
 				ClusterSingletonManager.props(
-						ProxyCrawlingGateway.props(),
-						PoisonPill.getInstance(),
-						clusterSingletonManagerSettings),
-				ProxyCrawlingGateway.DEFAULT_NAME);
-        addProxy(ProxyCrawlingGateway.DEFAULT_NAME);
-
-		system.actorOf(
-				ClusterSingletonManager.props(
 						ProxyCrawlingScheduler.props(),
 						PoisonPill.getInstance(),
 						clusterSingletonManagerSettings),
 				ProxyCrawlingScheduler.DEFAULT_NAME);
         addProxy(ProxyCrawlingScheduler.DEFAULT_NAME);
-
-		system.actorOf(
-				ClusterSingletonManager.props(
-						WebsiteCrawlingGateway.props(),
-						PoisonPill.getInstance(),
-						clusterSingletonManagerSettings),
-				WebsiteCrawlingGateway.DEFAULT_NAME);
-        addProxy(WebsiteCrawlingGateway.DEFAULT_NAME);
 
 		system.actorOf(
 				ClusterSingletonManager.props(

@@ -2,8 +2,8 @@ package de.hpi.rotakka.actors.twitter;
 
 import akka.actor.Props;
 import de.hpi.rotakka.actors.AbstractLoggingActor;
-import de.hpi.rotakka.actors.utils.WebDriverFactory;
 import de.hpi.rotakka.actors.utils.Tweet;
+import de.hpi.rotakka.actors.utils.WebDriverFactory;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.jsoup.Jsoup;
@@ -24,8 +24,6 @@ public class TwitterCrawler extends AbstractLoggingActor {
         return Props.create(TwitterCrawler.class);
     }
 
-    private static WebDriver webDriver;
-
     @Data
     @AllArgsConstructor
     public static final class CrawlURL implements Serializable {
@@ -40,14 +38,14 @@ public class TwitterCrawler extends AbstractLoggingActor {
                 .build();
     }
 
-    private WebDriver webDriver;
+    private static WebDriver webDriver;
     private List<Tweet> extracted_tweets;
 
     private void crawl(CrawlURL crawlUrl) {
         crawl(crawlUrl.url);
     }
 
-    private void crawl(String url) {
+    public void crawl(String url) {
         webDriver.get(url);
         Document twPage = Jsoup.parse(webDriver.getPageSource());
         Elements tweets = twPage.select("ol[id=stream-items-id] li[data-item-type=tweet]");

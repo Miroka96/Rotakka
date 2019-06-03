@@ -1,15 +1,15 @@
 package de.hpi.rotakka.actors.twitter;
 
 import akka.actor.Props;
-import de.hpi.rotakka.actors.AbstractLoggingActor;
+import de.hpi.rotakka.actors.AbstractReplicationActor;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.io.Serializable;
 
-public class WebsiteCrawlingScheduler extends AbstractLoggingActor {
+public class WebsiteCrawlingScheduler extends AbstractReplicationActor {
 
-    public static final String DEFAULT_NAME = "proxySyncher";
+    public static final String DEFAULT_NAME = "websiteCrawlingScheduler";
 
     public static Props props() {
         return Props.create(WebsiteCrawlingScheduler.class);

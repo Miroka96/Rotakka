@@ -14,7 +14,7 @@ class MasterSystem extends ClusterSystem {
     }
 
 
-    void addCustomActors() {
+    void customStart() {
 
 
     }

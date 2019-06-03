@@ -1,15 +1,15 @@
 package de.hpi.rotakka.actors.proxy.checking;
 
 import akka.actor.Props;
-import de.hpi.rotakka.actors.AbstractLoggingActor;
+import de.hpi.rotakka.actors.AbstractReplicationActor;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.io.Serializable;
 
-public class ProxyCheckingScheduler extends AbstractLoggingActor {
+public class ProxyCheckingScheduler extends AbstractReplicationActor {
 
-    public static final String DEFAULT_NAME = "proxySyncher";
+    public static final String DEFAULT_NAME = "proxyCheckingScheduler";
 
     public static Props props() {
         return Props.create(ProxyCheckingScheduler.class);

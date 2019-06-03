@@ -2,6 +2,7 @@ package de.hpi.rotakka.actors.twitter;
 
 import akka.actor.Props;
 import de.hpi.rotakka.actors.AbstractLoggingActor;
+import de.hpi.rotakka.actors.utils.WebDriverFactory;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.jsoup.Jsoup;
@@ -9,11 +10,8 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.chrome.ChromeOptions;
 
 import java.io.Serializable;
-
-import static de.hpi.rotakka.actors.utils.Utility.createSeleniumWebDriver;
 
 public class TwitterCrawler extends AbstractLoggingActor {
 
@@ -23,7 +21,7 @@ public class TwitterCrawler extends AbstractLoggingActor {
         return Props.create(TwitterCrawler.class);
     }
 
-    WebDriver webDriver;
+    private static WebDriver webDriver;
 
     @Data
     @AllArgsConstructor
@@ -61,8 +59,13 @@ public class TwitterCrawler extends AbstractLoggingActor {
     @Override
     public void preStart() throws Exception {
         super.preStart();
-        ChromeOptions chromeOptions = new ChromeOptions();
-        webDriver = createSeleniumWebDriver(false, chromeOptions);
+        webDriver = WebDriverFactory.getWebDriver(log);
+    }
+
+    @Override
+    public void postStop() throws Exception {
+        super.postStop();
+        webDriver.close();
     }
 
 }

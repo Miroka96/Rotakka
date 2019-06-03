@@ -47,12 +47,12 @@ public class ProxyCrawler extends AbstractActor {
     @Override
     public Receive createReceive() {
         return receiveBuilder().match(
-                ExtractProxies.class, this::crawl)
+                ExtractProxies.class, this::extract)
                 .build();
     }
 
-    private void crawl(ExtractProxies task) {
-        crawl(task.crawlerName);
+    private void extract(ExtractProxies task) {
+        extract(task.crawlerName);
     }
 
     // ToDo: We could think about micro-batching this instead of scraping all and then adding it
@@ -60,7 +60,7 @@ public class ProxyCrawler extends AbstractActor {
      * This method will determine which crawler should be started by performing a string check and then
      * calling the extract() of the specific crawler
      */
-    private void crawl(String crawlerName) {
+    private void extract(String crawlerName) {
         Crawler crawler;
         if(crawlerName.equals("CrawlerFreeProxyCZ")) {
             crawler = new CrawlerFreeProxyCZ();

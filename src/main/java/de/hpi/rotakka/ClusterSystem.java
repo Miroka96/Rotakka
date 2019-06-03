@@ -98,7 +98,7 @@ abstract class ClusterSystem {
 	void start() {
 		Cluster.get(system).registerOnMemberUp(() -> {
 			addDefaultActors();
-			addCustomActors();
+			customStart();
 		});
 	}
 
@@ -150,6 +150,8 @@ abstract class ClusterSystem {
 				GraphStoreMaster.DEFAULT_NAME);
         addProxy(GraphStoreMaster.DEFAULT_NAME);
 
+		// the replicator is automatically started by the DistributedData extension
+
 		//////////////// worker actors ///////////////////////////////////////
 
 		system.actorOf(ClusterListener.props(), ClusterListener.DEFAULT_NAME);
@@ -161,5 +163,5 @@ abstract class ClusterSystem {
 		system.actorOf(TwitterCrawler.props(), TwitterCrawler.DEFAULT_NAME);
 	}
 
-	abstract void addCustomActors();
+	abstract void customStart();
 }

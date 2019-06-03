@@ -1,12 +1,19 @@
 package de.hpi.rotakka.actors.twitter;
 
 import akka.actor.Props;
+import de.hpi.rotakka.actors.utils.Tweet;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
+
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
 import static de.hpi.rotakka.actors.utils.Utility.createSeleniumWebDriver;
 
@@ -18,11 +25,19 @@ public class TwitterCrawler {
         return Props.create(TwitterCrawler.class);
     }
 
-    WebDriver webDriver;
+    @Data
+    @AllArgsConstructor
+    public static final class GetProxies implements Serializable {
+        public static final long serialVersionUID = 1L;
+    }
+
+    private WebDriver webDriver;
+    private List<Tweet> extracted_tweets;
 
     public TwitterCrawler() {
         ChromeOptions chromeOptions = new ChromeOptions();
         webDriver = createSeleniumWebDriver(false, chromeOptions);
+        extracted_tweets = new ArrayList<>();
     }
 
     public void extract(String url) {
@@ -33,10 +48,9 @@ public class TwitterCrawler {
         Elements tweets = twPage.select("ol[id=stream-items-id] li[data-item-type=tweet]");
 
         for(Element tweet : tweets) {
-            int i = 2;
-            //tweet.childNodes.get(1).attributes()
-            //tweet.select("div.tweet.js-stream-tweet.js-actionable-tweet.js-profile-popup-actionable.dismissible-content.original-tweet.js-original-tweet.tweet-has-context.has-cards.cards-forward")
+            Element tweetDiv = tweet.children().get(0);
+            tweetDiv.children().select("div[class=content]");
+            extracted_tweets.add(new Tweet(tweetDiv));
         }
-        int debug = 1;
     }
 }

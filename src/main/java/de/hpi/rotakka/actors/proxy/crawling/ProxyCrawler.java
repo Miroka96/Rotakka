@@ -47,8 +47,12 @@ public class ProxyCrawler extends AbstractActor {
     @Override
     public Receive createReceive() {
         return receiveBuilder().match(
-                ExtractProxies.class, (ExtractProxies r) -> this.crawl(r.crawlerName))
+                ExtractProxies.class, this::crawl)
                 .build();
+    }
+
+    private void crawl(ExtractProxies task) {
+        crawl(task.crawlerName);
     }
 
     // ToDo: We could think about micro-batching this instead of scraping all and then adding it

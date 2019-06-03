@@ -102,7 +102,7 @@ abstract class ClusterSystem {
 		});
 	}
 
-    private HashMap<String, ActorRef> proxies;
+	private HashMap<String, ActorRef> proxies = new HashMap<>();
 
     private void addProxy(String singletonName) {
         String singletonManagerPath = "/user/" + singletonName;

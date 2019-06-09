@@ -60,7 +60,7 @@ public class TwitterCrawler extends AbstractLoggingActor {
     @Override
     public void preStart() throws Exception {
         super.preStart();
-        webDriver = WebDriverFactory.getWebDriver(log);
+        webDriver = WebDriverFactory.createWebDriver(log, this.context());
         extracted_tweets = new ArrayList<>();
     }
 

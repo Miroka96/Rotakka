@@ -2,10 +2,7 @@ package de.hpi.rotakka.actors.data.graph;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-
-import java.io.Serializable;
+import de.hpi.rotakka.actors.utils.RegisterMe;
 
 public class GraphStoreMaster extends AbstractGraphStore {
 
@@ -13,14 +10,6 @@ public class GraphStoreMaster extends AbstractGraphStore {
 
     public static Props props() {
         return Props.create(GraphStoreMaster.class);
-    }
-
-    @Data
-    @AllArgsConstructor
-    public static final class RegisterMe implements Serializable {
-        public static final long serialVersionUID = 1L;
-
-        ActorRef slave;
     }
 
     @Override
@@ -44,7 +33,7 @@ public class GraphStoreMaster extends AbstractGraphStore {
     }
 
     void add(RegisterMe slave) {
-        add(slave.slave);
+        add(getSender());
     }
 
     void add(ActorRef slave) {

@@ -5,6 +5,7 @@ import akka.actor.Props;
 import akka.cluster.Cluster;
 import akka.cluster.ddata.*;
 import de.hpi.rotakka.actors.AbstractReplicationActor;
+import de.hpi.rotakka.actors.utils.RegisterMe;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.omg.CosNaming.NamingContextPackage.NotFound;
@@ -42,12 +43,6 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
     public static final class FinishedUser implements Serializable {
         public static final long serialVersionUID = 1L;
         public ActorRef sendingActor;
-    }
-
-    @Data
-    @AllArgsConstructor
-    public static final class RegisterMe implements Serializable {
-        public static final long serialVersionUID = 1L;
     }
 
     @Override

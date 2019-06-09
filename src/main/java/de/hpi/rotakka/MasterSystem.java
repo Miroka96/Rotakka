@@ -16,6 +16,5 @@ class MasterSystem extends ClusterSystem {
 
     void customStart() {
 
-
     }
 }

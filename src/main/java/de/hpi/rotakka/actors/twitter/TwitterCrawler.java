@@ -47,7 +47,9 @@ public class TwitterCrawler extends AbstractLoggingActor {
     }
 
     private void crawl(String userID) {
-        webDriver.get(TWITTER_BASE_URL+userID);
+        // ToDo: Remove blocking by sending self messaged and splitting work
+        log.info("Started working on:" + userID);
+        webDriver.get(TWITTER_BASE_URL + userID);
         Document twPage = Jsoup.parse(webDriver.getPageSource());
         Elements tweets = twPage.select("ol[id=stream-items-id] li[data-item-type=tweet]");
 
@@ -63,6 +65,7 @@ public class TwitterCrawler extends AbstractLoggingActor {
         super.preStart();
         webDriver = WebDriverFactory.createWebDriver(log, this.context());
         extractedTweets = new ArrayList<>();
+        context().actorSelection("/user/"+TwitterCrawlingScheduler.DEFAULT_NAME+"Proxy").tell(new TwitterCrawlingScheduler.RegisterMe(this.getSelf()), getSelf());
     }
 
     @Override

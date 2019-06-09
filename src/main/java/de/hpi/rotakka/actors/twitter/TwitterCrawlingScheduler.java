@@ -12,6 +12,7 @@ import org.omg.CosNaming.NamingContextPackage.NotFound;
 import java.io.Serializable;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Set;
 
 public class TwitterCrawlingScheduler extends AbstractReplicationActor {
@@ -20,7 +21,10 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
     private final ActorRef replicator = DistributedData.get(getContext().getSystem()).replicator();
     private final Cluster node = Cluster.get(getContext().getSystem());
     private final Key<ORSet<String>> newUsersKey = ORSetKey.create("new_users");
+    private final ArrayList<String> entryPoints = new ArrayList<>(Arrays.asList("realDonaldTrump", "HPI_DE"));
+
     private ArrayList<ActorRef> awaitingWork = new ArrayList<>();
+    private ArrayList<ActorRef> workers = new ArrayList<>();
 
     public static Props props() {
         return Props.create(TwitterCrawlingScheduler.class);
@@ -40,6 +44,13 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
         public ActorRef sendingActor;
     }
 
+    @Data
+    @AllArgsConstructor
+    public static final class RegisterMe implements Serializable {
+        public static final long serialVersionUID = 1L;
+        public ActorRef sendingActor;
+    }
+
     @Override
     public Receive createReceive() {
         return receiveBuilder()
@@ -48,7 +59,15 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
                 .match(Replicator.GetSuccess.class, this::handleReplicatorMessages)
                 .match(Replicator.GetFailure.class, m -> log.error("Replicator couldn't get our data"))
                 .match(NotFound.class, m -> log.error("Replicator couldn't find key"))
+                .match(RegisterMe.class,  this::handleRegisterMe)
                 .build();
+    }
+
+    private void handleRegisterMe(RegisterMe message) {
+        // ToDO: Error handling if set is empty
+        workers.add(message.sendingActor);
+        message.sendingActor.tell(new TwitterCrawler.CrawlUser(entryPoints.get(0)), this.getSelf());
+        entryPoints.remove(0);
     }
 
     // Add retweeted users & mentions to the data replicator to be crawled

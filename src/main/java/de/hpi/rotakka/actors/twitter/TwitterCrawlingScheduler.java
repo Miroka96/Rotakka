@@ -5,6 +5,7 @@ import akka.actor.Props;
 import akka.cluster.Cluster;
 import akka.cluster.ddata.*;
 import de.hpi.rotakka.actors.AbstractReplicationActor;
+import de.hpi.rotakka.actors.utils.Messages;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.omg.CosNaming.NamingContextPackage.NotFound;
@@ -44,12 +45,6 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
         public ActorRef sendingActor;
     }
 
-    @Data
-    @AllArgsConstructor
-    public static final class RegisterMe implements Serializable {
-        public static final long serialVersionUID = 1L;
-    }
-
     @Override
     public Receive createReceive() {
         return receiveBuilder()
@@ -58,11 +53,11 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
                 .match(Replicator.GetSuccess.class, this::handleReplicatorMessages)
                 .match(Replicator.GetFailure.class, m -> log.error("Replicator couldn't get our data"))
                 .match(NotFound.class, m -> log.error("Replicator couldn't find key"))
-                .match(RegisterMe.class,  this::handleRegisterMe)
+                .match(Messages.RegisterMe.class, this::handleRegisterMe)
                 .build();
     }
 
-    private void handleRegisterMe(RegisterMe message) {
+    private void handleRegisterMe(Messages.RegisterMe message) {
         // ToDO: Error handling if set is empty
         workers.add(getSender());
         getSender().tell(new TwitterCrawler.CrawlUser(entryPoints.get(0)), this.getSelf());

@@ -14,13 +14,17 @@ import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 
 import java.io.Serializable;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class TwitterCrawler extends AbstractLoggingActor {
 
     public final static String DEFAULT_NAME = "twitterCrawler";
     private final static String TWITTER_BASE_URL = "https://twitter.com/";
+    private final static String TWITTER_ADVANCED_URL = "https://twitter.com/search?l=&q=from%3A[NAME]%20since%3A[START]%20until%3A[END]";
 
     public static Props props() {
         return Props.create(TwitterCrawler.class);
@@ -51,7 +55,28 @@ public class TwitterCrawler extends AbstractLoggingActor {
         // ToDo: Remove blocking by sending self messaged and splitting work
         log.info("Started working on:" + userID);
         webDriver.get(TWITTER_BASE_URL + userID);
+        ArrayList<Integer> years = new ArrayList<>(Arrays.asList(2018, 2017));
 
+        ArrayList<String> startDates = new ArrayList<>();
+        ArrayList<String> endDates = new ArrayList<>();
+
+        for(Integer year : years) {
+            for(int month = 1; month<=12; month++) {
+                String monthString;
+                if(month < 10) {
+                    monthString = "0" + month;
+                }
+                else {
+                    monthString = Integer.toString(month);
+                }
+                String startDate = year + "-" + monthString + "-01";
+                LocalDate convertedDate = LocalDate.parse(startDate, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+                convertedDate = convertedDate.withDayOfMonth(convertedDate.getMonth().length(convertedDate.isLeapYear()));
+                String endDate = year + "-" + monthString + "-" + convertedDate.getDayOfMonth();
+                startDates.add(startDate);
+                endDates.add(endDate);
+            }
+        }
 
         for(int i = 0; i<200; i++) {
             ((JavascriptExecutor) webDriver).executeScript("window.scrollTo(0, document.body.scrollHeight)");

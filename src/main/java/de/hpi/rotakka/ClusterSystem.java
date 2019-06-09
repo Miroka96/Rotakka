@@ -4,6 +4,7 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.PoisonPill;
 import akka.cluster.Cluster;
+import akka.cluster.ddata.DistributedData;
 import akka.cluster.singleton.ClusterSingletonManager;
 import akka.cluster.singleton.ClusterSingletonManagerSettings;
 import akka.cluster.singleton.ClusterSingletonProxy;
@@ -151,6 +152,8 @@ abstract class ClusterSystem {
         addProxy(GraphStoreMaster.DEFAULT_NAME);
 
 		// the replicator is automatically started by the DistributedData extension
+
+        DistributedData.apply(system);
 
 		//////////////// worker actors ///////////////////////////////////////
 

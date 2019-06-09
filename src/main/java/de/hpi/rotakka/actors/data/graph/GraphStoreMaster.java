@@ -17,7 +17,7 @@ public class GraphStoreMaster extends AbstractGraphStore {
 
     @Data
     @AllArgsConstructor
-    public static final class IAmYourSlave implements Serializable {
+    public static final class RegisterMe implements Serializable {
         public static final long serialVersionUID = 1L;
 
         ActorRef slave;
@@ -29,7 +29,7 @@ public class GraphStoreMaster extends AbstractGraphStore {
                 .match(SubGraph.class, this::add)
                 .match(Vertex.class, this::add)
                 .match(Edge.class, this::add)
-                .match(IAmYourSlave.class, this::add)
+                .match(RegisterMe.class, this::add)
                 .build();
     }
 
@@ -43,7 +43,7 @@ public class GraphStoreMaster extends AbstractGraphStore {
 
     }
 
-    void add(IAmYourSlave slave) {
+    void add(RegisterMe slave) {
         add(slave.slave);
     }
 

@@ -1,7 +1,5 @@
 package de.hpi.rotakka;
 
-import de.hpi.rotakka.actors.twitter.TwitterCrawler;
-
 // This class can be used to test single components
 public class MainTest {
 
@@ -28,8 +26,9 @@ public class MainTest {
 //            e.printStackTrace();
 //        }
 //
-        TwitterCrawler twC = new TwitterCrawler();
-        twC.crawl("https://twitter.com/elonmusk");
+        //TwitterCrawler twC = new TwitterCrawler();
+        //twC.crawl("https://twitter.com/elonmusk");
+        Boolean test = Boolean.parseBoolean(null);
         // Test the RotakkarProxy Crawler
         //CrawlerFreeProxyLists crawler = new CrawlerFreeProxyLists();
         //&List<RotakkaProxy> proxies = crawler.extract();

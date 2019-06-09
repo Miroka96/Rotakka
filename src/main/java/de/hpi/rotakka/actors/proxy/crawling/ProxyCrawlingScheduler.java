@@ -1,6 +1,8 @@
 package de.hpi.rotakka.actors.proxy.crawling;
 
+import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.cluster.ddata.DistributedData;
 import de.hpi.rotakka.actors.AbstractReplicationActor;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -10,6 +12,7 @@ import java.io.Serializable;
 public class ProxyCrawlingScheduler extends AbstractReplicationActor {
 
     public static final String DEFAULT_NAME = "proxyCrawlingScheduler";
+    private final ActorRef replicator = DistributedData.get(getContext().getSystem()).replicator();
 
     public static Props props() {
         return Props.create(ProxyCrawlingScheduler.class);

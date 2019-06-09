@@ -20,7 +20,7 @@ import de.hpi.rotakka.actors.proxy.checking.ProxyCheckingScheduler;
 import de.hpi.rotakka.actors.proxy.crawling.ProxyCrawler;
 import de.hpi.rotakka.actors.proxy.crawling.ProxyCrawlingScheduler;
 import de.hpi.rotakka.actors.twitter.TwitterCrawler;
-import de.hpi.rotakka.actors.twitter.WebsiteCrawlingScheduler;
+import de.hpi.rotakka.actors.twitter.TwitterCrawlingScheduler;
 import scala.concurrent.Await;
 import scala.concurrent.duration.Duration;
 
@@ -136,11 +136,11 @@ abstract class ClusterSystem {
 
 		system.actorOf(
 				ClusterSingletonManager.props(
-						WebsiteCrawlingScheduler.props(),
+						TwitterCrawlingScheduler.props(),
 						PoisonPill.getInstance(),
 						clusterSingletonManagerSettings),
-				WebsiteCrawlingScheduler.DEFAULT_NAME);
-        addProxy(WebsiteCrawlingScheduler.DEFAULT_NAME);
+				TwitterCrawlingScheduler.DEFAULT_NAME);
+        addProxy(TwitterCrawlingScheduler.DEFAULT_NAME);
 
 		system.actorOf(
 				ClusterSingletonManager.props(

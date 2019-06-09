@@ -19,6 +19,7 @@ import java.util.List;
 public class TwitterCrawler extends AbstractLoggingActor {
 
     public final static String DEFAULT_NAME = "twitterCrawler";
+    private final static String TWITTER_BASE_URL = "https://twitter.com/";
 
     public static Props props() {
         return Props.create(TwitterCrawler.class);
@@ -26,34 +27,34 @@ public class TwitterCrawler extends AbstractLoggingActor {
 
     @Data
     @AllArgsConstructor
-    public static final class CrawlURL implements Serializable {
+    public static final class CrawlUser implements Serializable {
         public static final long serialVersionUID = 1L;
-        String url;
+        String userID;
     }
 
     @Override
     public Receive createReceive() {
         return receiveBuilder()
-                .match(CrawlURL.class, this::crawl)
+                .match(CrawlUser.class, this::handleCrawlUser)
                 .build();
     }
 
     private static WebDriver webDriver;
-    private List<Tweet> extracted_tweets;
+    private List<Tweet> extractedTweets;
 
-    private void crawl(CrawlURL crawlUrl) {
-        crawl(crawlUrl.url);
+    private void handleCrawlUser(CrawlUser message) {
+        crawl(message.userID);
     }
 
-    public void crawl(String url) {
-        webDriver.get(url);
+    private void crawl(String userID) {
+        webDriver.get(TWITTER_BASE_URL+userID);
         Document twPage = Jsoup.parse(webDriver.getPageSource());
         Elements tweets = twPage.select("ol[id=stream-items-id] li[data-item-type=tweet]");
 
         for(Element tweet : tweets) {
             Element tweetDiv = tweet.children().get(0);
             tweetDiv.children().select("div[class=content]");
-            extracted_tweets.add(new Tweet(tweetDiv));
+            extractedTweets.add(new Tweet(tweetDiv));
         }
     }
 
@@ -61,7 +62,7 @@ public class TwitterCrawler extends AbstractLoggingActor {
     public void preStart() throws Exception {
         super.preStart();
         webDriver = WebDriverFactory.createWebDriver(log, this.context());
-        extracted_tweets = new ArrayList<>();
+        extractedTweets = new ArrayList<>();
     }
 
     @Override

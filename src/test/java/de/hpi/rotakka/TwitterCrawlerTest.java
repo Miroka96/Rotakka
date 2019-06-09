@@ -1,10 +1,5 @@
 package de.hpi.rotakka;
 
-/*
- * Copyright (C) 2009-2019 Lightbend Inc. <https://www.lightbend.com>
- */
-
-// #fullsample
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;

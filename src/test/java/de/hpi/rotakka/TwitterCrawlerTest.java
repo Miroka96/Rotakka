@@ -1,10 +1,5 @@
 package de.hpi.rotakka;
 
-/*
- * Copyright (C) 2009-2019 Lightbend Inc. <https://www.lightbend.com>
- */
-
-// #fullsample
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -43,20 +38,11 @@ public class TwitterCrawlerTest extends JUnitSuite {
             {
                 final Props props = TwitterCrawler.props();
                 final ActorRef subject = system.actorOf(props);
-                final TestKit probe = new TestKit(system);
 
+                TwitterCrawler.CrawlUser msg = new TwitterCrawler.CrawlUser("elonmusk");
+                subject.tell(msg, getRef());
 
-                within(
-                        Duration.ofSeconds(20),
-                        () -> {
-                            subject.tell(new TwitterCrawler.CrawlUser("elonmusk"), getRef());
-
-                            assert true;
-                            // Will wait for the rest of the 3 seconds
-                            expectNoMessage();
-                            return null;
-                        });
-
+                expectNoMessage(Duration.ofSeconds(2));
             }
         };
     }

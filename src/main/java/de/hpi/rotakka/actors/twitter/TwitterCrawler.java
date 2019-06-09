@@ -29,7 +29,7 @@ public class TwitterCrawler extends AbstractLoggingActor {
     @AllArgsConstructor
     public static final class CrawlUser implements Serializable {
         public static final long serialVersionUID = 1L;
-        String userID;
+        public String userID;
     }
 
     @Override

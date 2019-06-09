@@ -39,7 +39,9 @@ public class ProxyCrawler extends AbstractActor {
     }
 
     @Override
-    public void preStart() {}
+    public void preStart() {
+
+    }
 
     @Override
     public void postStop() {}

@@ -2,7 +2,7 @@ package de.hpi.rotakka.actors.data.graph;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import de.hpi.rotakka.actors.utils.RegisterMe;
+import de.hpi.rotakka.actors.utils.Messages;
 
 public class GraphStoreMaster extends AbstractGraphStore {
 
@@ -18,7 +18,7 @@ public class GraphStoreMaster extends AbstractGraphStore {
                 .match(SubGraph.class, this::add)
                 .match(Vertex.class, this::add)
                 .match(Edge.class, this::add)
-                .match(RegisterMe.class, this::add)
+                .match(Messages.RegisterMe.class, this::add)
                 .build();
     }
 
@@ -32,7 +32,7 @@ public class GraphStoreMaster extends AbstractGraphStore {
 
     }
 
-    void add(RegisterMe slave) {
+    void add(Messages.RegisterMe slave) {
         add(getSender());
     }
 

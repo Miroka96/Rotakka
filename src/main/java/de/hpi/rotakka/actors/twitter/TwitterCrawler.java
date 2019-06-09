@@ -2,6 +2,7 @@ package de.hpi.rotakka.actors.twitter;
 
 import akka.actor.Props;
 import de.hpi.rotakka.actors.AbstractLoggingActor;
+import de.hpi.rotakka.actors.utils.Messages;
 import de.hpi.rotakka.actors.utils.Tweet;
 import de.hpi.rotakka.actors.utils.WebDriverFactory;
 import lombok.AllArgsConstructor;
@@ -79,7 +80,7 @@ public class TwitterCrawler extends AbstractLoggingActor {
         super.preStart();
         webDriver = WebDriverFactory.createWebDriver(log, this.context());
         extractedTweets = new ArrayList<>();
-        context().actorSelection("/user/"+TwitterCrawlingScheduler.DEFAULT_NAME+"Proxy").tell(new TwitterCrawlingScheduler.RegisterMe(), getSelf());
+        context().actorSelection("/user/" + TwitterCrawlingScheduler.DEFAULT_NAME + "Proxy").tell(new Messages.RegisterMe(), getSelf());
     }
 
     @Override

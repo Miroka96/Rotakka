@@ -10,6 +10,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 
 import java.io.Serializable;
@@ -50,13 +51,26 @@ public class TwitterCrawler extends AbstractLoggingActor {
         // ToDo: Remove blocking by sending self messaged and splitting work
         log.info("Started working on:" + userID);
         webDriver.get(TWITTER_BASE_URL + userID);
+
+
+        for(int i = 0; i<200; i++) {
+            ((JavascriptExecutor) webDriver).executeScript("window.scrollTo(0, document.body.scrollHeight)");
+            try {
+                Thread.sleep(200);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
         Document twPage = Jsoup.parse(webDriver.getPageSource());
         Elements tweets = twPage.select("ol[id=stream-items-id] li[data-item-type=tweet]");
-
-        for(Element tweet : tweets) {
+        for (Element tweet : tweets) {
             Element tweetDiv = tweet.children().get(0);
             tweetDiv.children().select("div[class=content]");
             extractedTweets.add(new Tweet(tweetDiv));
+        }
+        for (Tweet tweet : extractedTweets) {
+            log.info(tweet.getTweet_text());
         }
     }
 
@@ -65,7 +79,7 @@ public class TwitterCrawler extends AbstractLoggingActor {
         super.preStart();
         webDriver = WebDriverFactory.createWebDriver(log, this.context());
         extractedTweets = new ArrayList<>();
-        context().actorSelection("/user/"+TwitterCrawlingScheduler.DEFAULT_NAME+"Proxy").tell(new TwitterCrawlingScheduler.RegisterMe(this.getSelf()), getSelf());
+        context().actorSelection("/user/"+TwitterCrawlingScheduler.DEFAULT_NAME+"Proxy").tell(new TwitterCrawlingScheduler.RegisterMe(), getSelf());
     }
 
     @Override

@@ -48,7 +48,6 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
     @AllArgsConstructor
     public static final class RegisterMe implements Serializable {
         public static final long serialVersionUID = 1L;
-        public ActorRef sendingActor;
     }
 
     @Override
@@ -65,8 +64,8 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
 
     private void handleRegisterMe(RegisterMe message) {
         // ToDO: Error handling if set is empty
-        workers.add(message.sendingActor);
-        message.sendingActor.tell(new TwitterCrawler.CrawlUser(entryPoints.get(0)), this.getSelf());
+        workers.add(getSender());
+        getSender().tell(new TwitterCrawler.CrawlUser(entryPoints.get(0)), this.getSelf());
         entryPoints.remove(0);
     }
 

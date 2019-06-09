@@ -8,6 +8,7 @@ import de.hpi.rotakka.actors.AbstractReplicationActor;
 import de.hpi.rotakka.actors.utils.Messages;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.omg.CosNaming.NamingContextPackage.NotFound;
 
 import java.io.Serializable;
@@ -32,6 +33,7 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
     }
 
     @Data
+    @NoArgsConstructor
     @AllArgsConstructor
     public static final class NewReference implements Serializable {
         public static final long serialVersionUID = 1L;
@@ -39,6 +41,7 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
     }
 
     @Data
+    @NoArgsConstructor
     @AllArgsConstructor
     public static final class FinishedUser implements Serializable {
         public static final long serialVersionUID = 1L;

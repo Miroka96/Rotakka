@@ -9,6 +9,7 @@ import de.hpi.rotakka.actors.proxy.crawling.websites.CrawlerFreeProxyCZ;
 import de.hpi.rotakka.actors.utils.Crawler;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -25,6 +26,7 @@ public class ProxyCrawler extends AbstractActor {
     private List<ProxyWrapper> proxyStore = new ArrayList<>();
 
     @Data
+    @NoArgsConstructor
     @AllArgsConstructor
     public static final class ExtractProxies implements Serializable {
         // Take the specific crawler and extract all proxies from that website
@@ -33,6 +35,7 @@ public class ProxyCrawler extends AbstractActor {
     }
 
     @Data
+    @NoArgsConstructor
     @AllArgsConstructor
     public static final class GetProxies implements Serializable {
         public static final long serialVersionUID = 1L;

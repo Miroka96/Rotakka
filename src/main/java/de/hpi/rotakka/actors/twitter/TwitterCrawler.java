@@ -7,6 +7,7 @@ import de.hpi.rotakka.actors.utils.Tweet;
 import de.hpi.rotakka.actors.utils.WebDriverFactory;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -28,6 +29,7 @@ public class TwitterCrawler extends AbstractLoggingActor {
     }
 
     @Data
+    @NoArgsConstructor
     @AllArgsConstructor
     public static final class CrawlUser implements Serializable {
         public static final long serialVersionUID = 1L;

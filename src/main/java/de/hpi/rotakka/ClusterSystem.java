@@ -55,7 +55,7 @@ abstract class ClusterSystem {
 
 			new Thread(() -> {
 				try {
-					Await.ready(system.whenTerminated(), Duration.create(10, TimeUnit.SECONDS));
+					Await.ready(system.whenTerminated(), Duration.create(2, TimeUnit.SECONDS));
 				} catch (Exception e) {
 					System.exit(-1);
 				}

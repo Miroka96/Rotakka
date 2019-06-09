@@ -16,7 +16,7 @@ public class WebDriverFactory {
             return webDriver;
         }
         else {
-            logger.error("ERROR: Selenium could not be started, shutting down system");
+            logger.error("Selenium could not be started, shutting down system");
             context.system().terminate();
             return null;
         }
@@ -26,30 +26,32 @@ public class WebDriverFactory {
         // HINT: Don't forget to .close() the WebDriver
         // HINT: Have only one WebDriver for all threads
         // HINT: Make the WebDriver interaction your custom get()-method thread safe
+
         String envChromeDriverPath = System.getenv("CHROME_DRIVER_PATH");
         String envChromeBinaryPath = System.getenv("CHROME_BINARY_PATH");
-        boolean envHealessMode = Boolean.parseBoolean(System.getenv("CHROME_HEADLESS_MODE"));
 
         if (envChromeDriverPath == null) {
-            logger.error("Chrome Driver Path not set, terminating");
+            logger.error("Chrome Driver Path not set, terminating soon");
             return null;
         }
         if (envChromeBinaryPath == null) {
-            logger.error("Chrome Binary Path not set, terminating");
+            logger.error("Chrome Binary Path not set, terminating soon");
             return null;
         }
+        boolean envHeadlessMode;
         if (System.getenv("CHROME_HEADLESS_MODE") == null) {
-            logger.error("Chrome Headless Mode is set; terminating");
-            return null;
+            logger.warning("Chrome Headless Mode not set");
+            envHeadlessMode = true;
+        } else {
+            envHeadlessMode = Boolean.parseBoolean(System.getenv("CHROME_HEADLESS_MODE"));
         }
-
 
         System.setProperty("webdriver.chrome.driver", envChromeDriverPath);
         String proxyAddress = System.getenv("PROXY_ADDRESS");
 
         ChromeOptions options = new ChromeOptions();
 
-        if(envHealessMode) {
+        if (envHeadlessMode) {
             options.addArguments("--no-sandbox");
             options.addArguments("headless");
             options.addArguments("--disable-gpu");

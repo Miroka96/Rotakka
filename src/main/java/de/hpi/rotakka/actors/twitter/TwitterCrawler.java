@@ -68,7 +68,9 @@ public class TwitterCrawler extends AbstractLoggingActor {
     @Override
     public void postStop() throws Exception {
         super.postStop();
-        webDriver.close();
+        if (webDriver != null) {
+            webDriver.close();
+        }
     }
 
 }

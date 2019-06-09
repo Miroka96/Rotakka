@@ -39,8 +39,7 @@ public class TwitterCrawlerTest extends JUnitSuite {
                 final Props props = TwitterCrawler.props();
                 final ActorRef subject = system.actorOf(props);
 
-                TwitterCrawler.CrawlUser msg = new TwitterCrawler.CrawlUser();
-                msg.userID = "";
+                TwitterCrawler.CrawlUser msg = new TwitterCrawler.CrawlUser("elonmusk");
                 subject.tell(msg, getRef());
 
                 expectNoMessage(Duration.ofSeconds(2));

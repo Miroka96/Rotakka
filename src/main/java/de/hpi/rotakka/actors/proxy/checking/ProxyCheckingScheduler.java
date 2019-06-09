@@ -1,4 +1,4 @@
-package de.hpi.rotakka.actors.proxy.checking;
+package de.hpi.rotakka.actors   .proxy.checking;
 
 import akka.actor.Props;
 import de.hpi.rotakka.actors.AbstractReplicationActor;
@@ -15,15 +15,10 @@ public class ProxyCheckingScheduler extends AbstractReplicationActor {
         return Props.create(ProxyCheckingScheduler.class);
     }
 
-    @Data
-    @AllArgsConstructor
-    public static final class GetProxy implements Serializable {
-        public static final long serialVersionUID = 1L;
-    }
 
     @Data
     @AllArgsConstructor
-    public static final class IntegrateNewProxies implements Serializable {
+    public static final class TestNewProxies implements Serializable {
         public static final long serialVersionUID = 1L;
     }
 
@@ -35,7 +30,17 @@ public class ProxyCheckingScheduler extends AbstractReplicationActor {
 
     @Override
     public Receive createReceive() {
-        return null;
+        return receiveBuilder()
+                .match(TestNewProxies.class, this::handleTestNewProxies)
+                .match(IntegrateCheckedProxies.class, this::handleIntegrateCheckedProxies)
+                .build();
     }
 
+    private void handleTestNewProxies(TestNewProxies message) {
+        // ToDo
+    }
+
+    private void handleIntegrateCheckedProxies(IntegrateCheckedProxies message) {
+        // ToDo
+    }
 }

@@ -17,25 +17,30 @@ public class ProxyCrawlingScheduler extends AbstractReplicationActor {
 
     @Data
     @AllArgsConstructor
-    public static final class GetProxy implements Serializable {
-        public static final long serialVersionUID = 1L;
-    }
-
-    @Data
-    @AllArgsConstructor
     public static final class IntegrateNewProxies implements Serializable {
         public static final long serialVersionUID = 1L;
     }
 
     @Data
     @AllArgsConstructor
-    public static final class IntegrateCheckedProxies implements Serializable {
+    public static final class FinishedScraping implements Serializable {
         public static final long serialVersionUID = 1L;
     }
 
     @Override
     public Receive createReceive() {
-        return null;
+        return receiveBuilder()
+                .match(FinishedScraping.class, this::handleFinishedScraping)
+                .match(IntegrateNewProxies.class, this::handleIntegrateNewProxies)
+                .build();
+    }
+
+    private void handleFinishedScraping(FinishedScraping message) {
+        // ToDo
+    }
+
+    private void handleIntegrateNewProxies(IntegrateNewProxies message) {
+        // ToDo
     }
 
 }

@@ -17,6 +17,7 @@ import org.openqa.selenium.WebDriver;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 public class TwitterCrawler extends AbstractLoggingActor {
@@ -55,6 +56,7 @@ public class TwitterCrawler extends AbstractLoggingActor {
     private void crawl(String url) {
         log.info("Started working on:" + url);
         webDriver.get(url);
+        HashSet<String> newUsers = new HashSet<>();
 
         try {
             Thread.sleep(PAGE_LOAD_WAIT);
@@ -77,12 +79,21 @@ public class TwitterCrawler extends AbstractLoggingActor {
         }
         Document twPage = Jsoup.parse(webDriver.getPageSource());
         Elements tweets = twPage.select("ol[id=stream-items-id] li[data-item-type=tweet]");
-        for (Element tweet : tweets) {
-            Element tweetDiv = tweet.children().get(0);
+        for (Element tweetHTML : tweets) {
+            Element tweetDiv = tweetHTML.children().get(0);
             tweetDiv.children().select("div[class=content]");
-            extractedTweets.add(new Tweet(tweetDiv));
+            Tweet tweet = new Tweet(tweetDiv);
+            newUsers.addAll(tweet.getReferenced_users());
+            extractedTweets.add(tweet);
         }
         log.info("Scraped "+extractedTweets.size()+" tweets");
+        log.info("Found "+newUsers.size()+" new users");
+        // ToDo: Send the scraped tweets to the graph store
+        // ToDo: Send the mentions to the TwitterCrawlingScheduler
+        if(newUsers.size() > 0) {
+            log.info("Found "+newUsers.size()+" new users");
+            getSender().tell(new TwitterCrawlingScheduler.NewReference((String[]) newUsers.toArray()), getSelf());
+        }
     }
 
     @Override

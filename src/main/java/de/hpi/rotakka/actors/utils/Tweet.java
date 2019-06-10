@@ -4,6 +4,7 @@ import lombok.Getter;
 import org.jsoup.nodes.Element;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @Getter
@@ -23,13 +24,12 @@ public class Tweet {
     private String retweet_id;
     private String retweeter;
 
-    private List<String> type;
+    private List<String> type = new ArrayList<>();
+    private List<String> referenced_users = new ArrayList<>();
 
     private String tweet_text;
 
     public Tweet(Element tweetElement) {
-        type = new ArrayList<>();
-
         tweet_id = tweetElement.attributes().get("data-tweet-id");
         item_id = tweetElement.attributes().get("data-item-id");
         permalink = tweetElement.attributes().get("data-permalink-path");
@@ -40,6 +40,7 @@ public class Tweet {
 
         if(tweetElement.attributes().hasKey("mentions")) {
             mentions = tweetElement.attributes().get("mentions");
+            referenced_users.addAll(Arrays.asList(mentions.split(" ")));
         }
 
         if(tweetElement.attributes().hasKey("data-has-parent-tweet")) {
@@ -49,6 +50,7 @@ public class Tweet {
         if (tweetElement.attributes().hasKey("data-retweet-id")) {
             retweet_id = tweetElement.attributes().get("data-retweet-id");
             retweeter = tweetElement.attributes().get("data-retweeter");
+            referenced_users.add(screen_name);
             type.add("retweet");
         }
         if (tweetElement.attributes().hasKey("data-is-reply-to")) {

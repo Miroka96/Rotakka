@@ -22,13 +22,13 @@ import java.util.Set;
 
 public class TwitterCrawlingScheduler extends AbstractReplicationActor {
 
-    public static final String DEFAULT_NAME = "websiteCrawlingScheduler";
+    public static final String DEFAULT_NAME = "TwitterCrawlingScheduler";
     public static final String PROXY_NAME = DEFAULT_NAME + "Proxy";
 
     private final ActorRef replicator = DistributedData.get(getContext().getSystem()).replicator();
     private final Cluster node = Cluster.get(getContext().getSystem());
     private final Key<ORSet<String>> newUsersKey = ORSetKey.create("new_users");
-    private final ArrayList<String> entryPoints = new ArrayList<>(Arrays.asList("realDonaldTrump", "HPI_DE", "HillaryClinton", "ladygaga"));
+    private final ArrayList<String> entryPoints = new ArrayList<>(Arrays.asList("elonmusk","realDonaldTrump", "HPI_DE", "HillaryClinton", "ladygaga"));
     private final static String TWITTER_ADVANCED_URL = "https://twitter.com/search?l=&q=from%%3A%s%%20since%%3A%s%%20until%%3A%s";
 
     private ArrayList<ActorRef> awaitingWork = new ArrayList<>();
@@ -89,12 +89,18 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
     // Add retweeted users & mentions to the data replicator to be crawled
     private void handleNewReference(NewReference message) {
         for(String user : message.getReferences()) {
-            Replicator.Update<ORSet<String>> update = new Replicator.Update<>(
-                    newUsersKey,
-                    ORSet.create(),
-                    Replicator.writeLocal(),
-                    curr -> curr.add(node, user));
-            replicator.tell(update, getSelf());
+            if(!scrapedUsers.contains(user)) {
+                workQueue.addAll(createCrawlingLinks(user, 2018, 2018));
+                scrapedUsers.add(user);
+                log.info("Current Work Queue Size: "+workQueue.size());
+
+                Replicator.Update<ORSet<String>> update = new Replicator.Update<>(
+                        newUsersKey,
+                        ORSet.create(),
+                        Replicator.writeLocal(),
+                        curr -> curr.add(node, user));
+                replicator.tell(update, getSelf());
+            }
         }
     }
 

@@ -23,7 +23,7 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
     private final ActorRef replicator = DistributedData.get(getContext().getSystem()).replicator();
     private final Cluster node = Cluster.get(getContext().getSystem());
     private final Key<ORSet<String>> newUsersKey = ORSetKey.create("new_users");
-    private final ArrayList<String> entryPoints = new ArrayList<>(Arrays.asList("realDonaldTrump", "HPI_DE"));
+    private final ArrayList<String> entryPoints = new ArrayList<>(Arrays.asList("realDonaldTrump", "HPI_DE", "HillaryClinton", "ladygaga"));
 
     private ArrayList<ActorRef> awaitingWork = new ArrayList<>();
     private ArrayList<ActorRef> workers = new ArrayList<>();

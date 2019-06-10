@@ -35,7 +35,6 @@ public class ProxyCrawler extends AbstractActor {
     }
 
     @Data
-    @NoArgsConstructor
     @AllArgsConstructor
     public static final class GetProxies implements Serializable {
         public static final long serialVersionUID = 1L;

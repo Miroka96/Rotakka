@@ -26,7 +26,7 @@ public class TwitterCrawler extends AbstractLoggingActor {
 
     public final static String DEFAULT_NAME = "twitterCrawler";
     private final static String TWITTER_BASE_URL = "https://twitter.com/";
-    private final static String TWITTER_ADVANCED_URL = "https://twitter.com/search?l=&q=from%3A[NAME]%20since%3A[START]%20until%3A[END]";
+    private final static String TWITTER_ADVANCED_URL = "https://twitter.com/search?l=&q=from%%3A%s%%20since%%3A%s%%20until%%3A%s";
 
     public static Props props() {
         return Props.create(TwitterCrawler.class);
@@ -57,12 +57,13 @@ public class TwitterCrawler extends AbstractLoggingActor {
     private void crawl(String userID) {
         // ToDo: Remove blocking by sending self messaged and splitting work
         log.info("Started working on:" + userID);
-        webDriver.get(TWITTER_BASE_URL + userID);
+
         ArrayList<Integer> years = new ArrayList<>(Arrays.asList(2018, 2017));
 
         ArrayList<String> startDates = new ArrayList<>();
         ArrayList<String> endDates = new ArrayList<>();
 
+        // Generate Possible start & end dates
         for(Integer year : years) {
             for(int month = 1; month<=12; month++) {
                 String monthString;
@@ -81,25 +82,46 @@ public class TwitterCrawler extends AbstractLoggingActor {
             }
         }
 
-        for(int i = 0; i<200; i++) {
-            ((JavascriptExecutor) webDriver).executeScript("window.scrollTo(0, document.body.scrollHeight)");
+        // Generate possible links
+        ArrayList<String> crawlingLinks = new ArrayList<>();
+        for(int i = 0; i<startDates.size(); i++) {
+            String crawlingLink = String.format(TWITTER_ADVANCED_URL, userID, startDates.get(i), endDates.get(i));
+            crawlingLinks.add(crawlingLink);
+        }
+        for(String link : crawlingLinks) {
+            webDriver.get(link);
             try {
-                Thread.sleep(200);
+                Thread.sleep(2000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
+            long previousPageLength;
+            while(true) {
+                previousPageLength = Jsoup.parse(webDriver.getPageSource()).text().length();
+                ((JavascriptExecutor) webDriver).executeScript("window.scrollTo(0, document.body.scrollHeight)");
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                if(previousPageLength == Jsoup.parse(webDriver.getPageSource()).text().length()) {
+                    log.info("Reached End of Page; Scraping");
+                    break;
+                }
+            }
+            Document twPage = Jsoup.parse(webDriver.getPageSource());
+            Elements tweets = twPage.select("ol[id=stream-items-id] li[data-item-type=tweet]");
+            for (Element tweet : tweets) {
+                Element tweetDiv = tweet.children().get(0);
+                tweetDiv.children().select("div[class=content]");
+                extractedTweets.add(new Tweet(tweetDiv));
+            }
+            for (Tweet tweet : extractedTweets) {
+                log.info(tweet.getTweet_text());
+            }
         }
 
-        Document twPage = Jsoup.parse(webDriver.getPageSource());
-        Elements tweets = twPage.select("ol[id=stream-items-id] li[data-item-type=tweet]");
-        for (Element tweet : tweets) {
-            Element tweetDiv = tweet.children().get(0);
-            tweetDiv.children().select("div[class=content]");
-            extractedTweets.add(new Tweet(tweetDiv));
-        }
-        for (Tweet tweet : extractedTweets) {
-            log.info(tweet.getTweet_text());
-        }
+
     }
 
     @Override

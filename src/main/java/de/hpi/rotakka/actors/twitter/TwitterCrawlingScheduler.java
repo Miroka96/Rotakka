@@ -1,6 +1,7 @@
 package de.hpi.rotakka.actors.twitter;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 import akka.actor.Props;
 import akka.cluster.Cluster;
 import akka.cluster.ddata.*;
@@ -20,6 +21,8 @@ import java.util.Set;
 public class TwitterCrawlingScheduler extends AbstractReplicationActor {
 
     public static final String DEFAULT_NAME = "websiteCrawlingScheduler";
+    public static final String PROXY_NAME = DEFAULT_NAME + "Proxy";
+
     private final ActorRef replicator = DistributedData.get(getContext().getSystem()).replicator();
     private final Cluster node = Cluster.get(getContext().getSystem());
     private final Key<ORSet<String>> newUsersKey = ORSetKey.create("new_users");
@@ -30,6 +33,10 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
 
     public static Props props() {
         return Props.create(TwitterCrawlingScheduler.class);
+    }
+
+    public static ActorSelection getSingleton(akka.actor.ActorContext context) {
+        return context.actorSelection("/user/" + PROXY_NAME);
     }
 
     @Data

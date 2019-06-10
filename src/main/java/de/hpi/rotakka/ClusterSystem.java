@@ -112,7 +112,7 @@ abstract class ClusterSystem {
     }
 
     ActorRef proxyCheckingScheduler;
-    ActorRef proxyCrawlingSchedulter;
+    ActorRef proxyCrawlingScheduler;
     ActorRef twitterCrawlingScheduler;
     ActorRef graphStoreMaster;
 
@@ -133,7 +133,7 @@ abstract class ClusterSystem {
                         PoisonPill.getInstance(),
                         clusterSingletonManagerSettings),
                 ProxyCrawlingScheduler.DEFAULT_NAME);
-        proxyCrawlingSchedulter = addProxy(ProxyCrawlingScheduler.DEFAULT_NAME);
+        proxyCrawlingScheduler = addProxy(ProxyCrawlingScheduler.DEFAULT_NAME);
 
         system.actorOf(
                 ClusterSingletonManager.props(
@@ -164,6 +164,7 @@ abstract class ClusterSystem {
         system.actorOf(ProxyCrawler.props(), ProxyCrawler.DEFAULT_NAME);
         system.actorOf(RotakkaProxy.props(), RotakkaProxy.DEFAULT_NAME);
         system.actorOf(TwitterCrawler.props(), TwitterCrawler.DEFAULT_NAME);
+        // add cli parameters to specify the worker counts
     }
 
     abstract void customStart();

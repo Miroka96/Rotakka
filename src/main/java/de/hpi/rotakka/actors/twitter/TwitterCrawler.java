@@ -48,7 +48,7 @@ public class TwitterCrawler extends AbstractLoggingActor {
     }
 
     private static WebDriver webDriver;
-    private List<Tweet> extractedTweets;
+    private List<Tweet> extractedTweets = new ArrayList<>();
 
     private void handleCrawlUser(CrawlUser message) {
         crawl(message.userID);
@@ -106,8 +106,7 @@ public class TwitterCrawler extends AbstractLoggingActor {
     public void preStart() throws Exception {
         super.preStart();
         webDriver = WebDriverFactory.createWebDriver(log, this.context());
-        extractedTweets = new ArrayList<>();
-        context().actorSelection("/user/" + TwitterCrawlingScheduler.DEFAULT_NAME + "Proxy").tell(new Messages.RegisterMe(), getSelf());
+        TwitterCrawlingScheduler.getSingleton(context()).tell(new Messages.RegisterMe(), getSelf());
     }
 
     @Override

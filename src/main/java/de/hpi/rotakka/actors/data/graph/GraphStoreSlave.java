@@ -1,6 +1,7 @@
 package de.hpi.rotakka.actors.data.graph;
 
 import akka.actor.Props;
+import de.hpi.rotakka.actors.utils.Messages;
 
 public class GraphStoreSlave extends AbstractGraphStore {
 
@@ -17,6 +18,11 @@ public class GraphStoreSlave extends AbstractGraphStore {
                 .match(Vertex.class, this::add)
                 .match(Edge.class, this::add)
                 .build();
+    }
+
+    @Override
+    public void preStart() {
+        GraphStoreMaster.getSingleton(context()).tell(new Messages.RegisterMe(), getSelf());
     }
 
     @Override

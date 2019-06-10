@@ -3,6 +3,7 @@ package de.hpi.rotakka.actors.proxy.checking;
 import akka.actor.Props;
 import de.hpi.rotakka.actors.AbstractLoggingActor;
 import de.hpi.rotakka.actors.proxy.ProxyWrapper;
+import de.hpi.rotakka.actors.utils.Messages;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
@@ -28,7 +29,9 @@ public class ProxyChecker extends AbstractLoggingActor {
     }
 
     @Override
-    public void preStart() {}
+    public void preStart() {
+        ProxyCheckingScheduler.getSingleton(context()).tell(new Messages.RegisterMe(), getSelf());
+    }
 
     @Override
     public void postStop() {}
@@ -60,19 +63,26 @@ public class ProxyChecker extends AbstractLoggingActor {
      * This method will determine whether a proxy is reachable (i.e. ICMP check)
      */
     private Boolean isReachable(ProxyWrapper proxy) {
+        URLConnection connection = null;
         try {
             InetAddress address = InetAddress.getByName(proxy.getIp());
             boolean reachable = address.isReachable(10000);
             if(reachable) {
-                URLConnection connection = new URL("http://www.google.com").openConnection(proxy.getProxyObject());
+                connection = new URL("http://www.google.com").openConnection(proxy.getProxyObject());
                 connection.setConnectTimeout(10000);
                 connection.connect();
                 Object content = connection.getContent();
                 return true;
             }
-        }
-        catch(IOException e) {
+        } catch(IOException e) {
             return false;
+        } finally {
+            if (connection != null) {
+                try {
+                    connection.getInputStream().close();
+                } catch (Exception ignored) {
+                }
+            }
         }
         return false;
     }

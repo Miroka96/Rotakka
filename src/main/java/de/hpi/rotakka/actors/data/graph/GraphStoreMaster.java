@@ -1,12 +1,20 @@
 package de.hpi.rotakka.actors.data.graph;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 import akka.actor.Props;
 import de.hpi.rotakka.actors.utils.Messages;
+
+import java.util.ArrayList;
 
 public class GraphStoreMaster extends AbstractGraphStore {
 
     public static final String DEFAULT_NAME = "graphStoreMaster";
+    public static final String PROXY_NAME = DEFAULT_NAME + "Proxy";
+
+    public static ActorSelection getSingleton(akka.actor.ActorContext context) {
+        return context.actorSelection("/user/" + PROXY_NAME);
+    }
 
     public static Props props() {
         return Props.create(GraphStoreMaster.class);
@@ -32,12 +40,14 @@ public class GraphStoreMaster extends AbstractGraphStore {
 
     }
 
+    private ArrayList<ActorRef> slaves = new ArrayList<>();
+
     void add(Messages.RegisterMe slave) {
         add(getSender());
     }
 
     void add(ActorRef slave) {
-
+        slaves.add(slave);
     }
 
 }

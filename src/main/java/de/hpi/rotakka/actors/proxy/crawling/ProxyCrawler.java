@@ -7,6 +7,7 @@ import akka.event.LoggingAdapter;
 import de.hpi.rotakka.actors.proxy.ProxyWrapper;
 import de.hpi.rotakka.actors.proxy.crawling.websites.CrawlerFreeProxyCZ;
 import de.hpi.rotakka.actors.utils.Crawler;
+import de.hpi.rotakka.actors.utils.Messages;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -34,16 +35,9 @@ public class ProxyCrawler extends AbstractActor {
         String crawlerName;
     }
 
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static final class GetProxies implements Serializable {
-        public static final long serialVersionUID = 1L;
-    }
-
     @Override
     public void preStart() {
-
+        ProxyCrawlingScheduler.getSingleton(context()).tell(new Messages.RegisterMe(), getSelf());
     }
 
     @Override

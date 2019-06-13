@@ -15,10 +15,7 @@ import org.omg.CosNaming.NamingContextPackage.NotFound;
 import java.io.Serializable;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.Set;
+import java.util.*;
 
 public class TwitterCrawlingScheduler extends AbstractReplicationActor {
 
@@ -49,7 +46,7 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
     @AllArgsConstructor
     public static final class NewReference implements Serializable {
         public static final long serialVersionUID = 1L;
-        public String[] references;
+        public HashSet<String> references;
     }
 
     @Data

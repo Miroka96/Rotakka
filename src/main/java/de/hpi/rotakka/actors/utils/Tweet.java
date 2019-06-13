@@ -38,8 +38,8 @@ public class Tweet {
         name = tweetElement.attributes().get("data-name");
         user_id = tweetElement.attributes().get("data-user-id");
 
-        if(tweetElement.attributes().hasKey("mentions")) {
-            mentions = tweetElement.attributes().get("mentions");
+        if(tweetElement.attributes().hasKey("data-mentions")) {
+            mentions = tweetElement.attributes().get("data-mentions");
             referenced_users.addAll(Arrays.asList(mentions.split(" ")));
         }
 

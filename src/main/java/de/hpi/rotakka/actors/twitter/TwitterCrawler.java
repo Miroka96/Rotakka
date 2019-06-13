@@ -92,7 +92,7 @@ public class TwitterCrawler extends AbstractLoggingActor {
         // ToDo: Send the mentions to the TwitterCrawlingScheduler
         if(newUsers.size() > 0) {
             log.info("Found "+newUsers.size()+" new users");
-            getSender().tell(new TwitterCrawlingScheduler.NewReference((String[]) newUsers.toArray()), getSelf());
+            getSender().tell(new TwitterCrawlingScheduler.NewReference(newUsers), getSelf());
         }
     }
 

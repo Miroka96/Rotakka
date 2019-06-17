@@ -4,12 +4,10 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
 import akka.actor.Props;
 import de.hpi.rotakka.actors.AbstractReplicationActor;
+import de.hpi.rotakka.actors.proxy.CheckedProxy;
 import de.hpi.rotakka.actors.proxy.ProxyWrapper;
 import de.hpi.rotakka.actors.utils.Messages;
 import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
 
 import java.util.*;
 
@@ -24,13 +22,6 @@ public class ProxyCheckingScheduler extends AbstractReplicationActor {
 
     public static Props props() {
         return Props.create(ProxyCheckingScheduler.class);
-    }
-
-    @Data
-    @EqualsAndHashCode(callSuper = true)
-    @NoArgsConstructor
-    public static class CheckedProxy extends ProxyWrapper {
-        Date lastChecked;
     }
 
     @AllArgsConstructor
@@ -64,6 +55,7 @@ public class ProxyCheckingScheduler extends AbstractReplicationActor {
 
     private void add(ActorRef worker) {
         workers.add(worker);
+        availableWorkers.add(worker);
     }
 
     private Queue<ProxyWrapper> proxiesToCheck = new LinkedList<>();
@@ -71,9 +63,12 @@ public class ProxyCheckingScheduler extends AbstractReplicationActor {
     private HashSet<CheckedProxy> checkedProxies = new HashSet<>();
 
     private void add(ProxyWrapper proxy) {
+        log.info("Got Tasked to distribute checking of a proxy");
         if (!availableWorkers.isEmpty()) {
+            log.info("Assigned Work");
             assign(proxy);
         } else {
+            log.info("Delayed Work");
             proxiesToCheck.add(proxy);
         }
     }
@@ -88,6 +83,7 @@ public class ProxyCheckingScheduler extends AbstractReplicationActor {
         }
         if (!proxiesToCheck.isEmpty()) {
             ProxyWrapper work = proxiesToCheck.remove();
+            log.info("Assigned Work");
             assign(work);
         }
     }

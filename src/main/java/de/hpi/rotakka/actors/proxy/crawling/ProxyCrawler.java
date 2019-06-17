@@ -7,6 +7,7 @@ import akka.event.LoggingAdapter;
 import de.hpi.rotakka.actors.proxy.ProxyWrapper;
 import de.hpi.rotakka.actors.proxy.checking.ProxyCheckingScheduler;
 import de.hpi.rotakka.actors.proxy.crawling.websites.CrawlerFreeProxyCZ;
+import de.hpi.rotakka.actors.proxy.crawling.websites.CrawlerUsProxy;
 import de.hpi.rotakka.actors.utils.Crawler;
 import de.hpi.rotakka.actors.utils.Messages;
 import lombok.AllArgsConstructor;
@@ -62,19 +63,26 @@ public class ProxyCrawler extends AbstractActor {
      */
     private void extract(String crawlerName) {
         Crawler crawler;
+        log.info("Tasked to Crawl "+crawlerName);
         if(crawlerName.equals("CrawlerFreeProxyCZ")) {
             crawler = new CrawlerFreeProxyCZ();
+        }
+        else if(crawlerName.equals("CrawlerUsProxy")) {
+            crawler = new CrawlerUsProxy();
         }
         else {
             log.error("FATAL: RotakkarProxy Crawler Class not found");
             return;
         }
         List<ProxyWrapper> proxies = crawler.extract();
+        log.info("Extracted "+proxies.size()+" proxies");
 
         // Single Proxy Sending
         for(ProxyWrapper proxy : proxies) {
             ProxyCheckingScheduler.getSingleton(context()).tell(proxy, getSelf());
         }
         ProxyCrawlingScheduler.getSingleton(context()).tell(new ProxyCrawlingScheduler.FinishedScraping(), getSelf());
+        log.info("Finished sending messages for "+proxies.size()+" proxies");
+
     }
 }

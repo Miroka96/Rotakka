@@ -2,6 +2,7 @@ package de.hpi.rotakka.actors.proxy.checking;
 
 import akka.actor.Props;
 import de.hpi.rotakka.actors.AbstractLoggingActor;
+import de.hpi.rotakka.actors.proxy.CheckedProxy;
 import de.hpi.rotakka.actors.proxy.ProxyWrapper;
 import de.hpi.rotakka.actors.utils.Messages;
 import lombok.AllArgsConstructor;
@@ -40,23 +41,29 @@ public class ProxyChecker extends AbstractLoggingActor {
     public Receive createReceive() {
         return receiveBuilder()
                 .match(
-                        CheckProxyAddress.class, this::handleCheckProxyAddress)
+                        ProxyWrapper.class, this::handleCheckProxyAddress)
                 .build();
     }
 
     /**
      * This method will handle the CheckProxyAddress message
      */
-    private void handleCheckProxyAddress(CheckProxyAddress message) {
-        ProxyWrapper proxy = message.proxy;
+    private void handleCheckProxyAddress(ProxyWrapper proxy) {
+        // ToDo: If a Proxy is not reachable, then the Checker cannot get new work
+        // FIX THAT
+        log.info("Checking Proxy");
         if(isReachable(proxy)) {
             long respTime = averageResponseTime(proxy);
             if(respTime >= 0) {
                 proxy.setAverageResponseTime(respTime);
+                log.info("Found Working Proxy!");
+                getSender().tell(new CheckedProxy(proxy), getSelf());
             }
-            //ToDo: Sent a message back to the Syncher/DataStore with the checked proxy
-            //      It is debatable whether we should also save proxies which have failed the check
         }
+        else {
+            log.info("Found Disabled Proxy");
+        }
+
     }
 
     /**

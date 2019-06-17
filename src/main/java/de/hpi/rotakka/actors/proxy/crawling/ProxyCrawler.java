@@ -5,6 +5,7 @@ import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import de.hpi.rotakka.actors.proxy.ProxyWrapper;
+import de.hpi.rotakka.actors.proxy.checking.ProxyCheckingScheduler;
 import de.hpi.rotakka.actors.proxy.crawling.websites.CrawlerFreeProxyCZ;
 import de.hpi.rotakka.actors.utils.Crawler;
 import de.hpi.rotakka.actors.utils.Messages;
@@ -69,6 +70,11 @@ public class ProxyCrawler extends AbstractActor {
             return;
         }
         List<ProxyWrapper> proxies = crawler.extract();
-        this.proxyStore.addAll(proxies);
+
+        // Single Proxy Sending
+        for(ProxyWrapper proxy : proxies) {
+            ProxyCheckingScheduler.getSingleton(context()).tell(proxy, getSelf());
+        }
+        ProxyCrawlingScheduler.getSingleton(context()).tell(new ProxyCrawlingScheduler.FinishedScraping(), getSelf());
     }
 }

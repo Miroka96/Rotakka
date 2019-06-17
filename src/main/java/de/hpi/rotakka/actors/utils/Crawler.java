@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.logging.Level;
 
 public abstract class Crawler {
-    WebClient webClient;
+    public WebClient webClient;
 
     public Crawler() {
         webClient = new WebClient();

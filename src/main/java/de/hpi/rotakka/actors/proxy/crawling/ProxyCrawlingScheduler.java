@@ -15,6 +15,8 @@ public class ProxyCrawlingScheduler extends AbstractReplicationActor {
 
     public static final String DEFAULT_NAME = "proxyCrawlingScheduler";
     public static final String PROXY_NAME = DEFAULT_NAME + "Proxy";
+    private ArrayList<ActorRef> proxyCrawlers = new ArrayList<>();
+    private ArrayList<ActorRef> availableWorkers = new ArrayList<>();
 
     public static ActorSelection getSingleton(akka.actor.ActorContext context) {
         return context.actorSelection("/user/" + PROXY_NAME);
@@ -45,16 +47,16 @@ public class ProxyCrawlingScheduler extends AbstractReplicationActor {
                 .build();
     }
 
-    private ArrayList<ActorRef> proxyCrawlers = new ArrayList<>();
-
     private void add(Messages.RegisterMe msg) {
         proxyCrawlers.add(getSender());
+        availableWorkers.add(getSender());
     }
 
     private void handleFinishedScraping(FinishedScraping message) {
-        // ToDo
+        availableWorkers.add(getSender());
     }
 
+    // This functionality will be handled by the ProxyCheckingScheduler
     private void handleIntegrateNewProxies(IntegrateNewProxies message) {
         // ToDo
     }

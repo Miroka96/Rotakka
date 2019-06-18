@@ -8,7 +8,9 @@ import de.hpi.rotakka.actors.proxy.CheckedProxy;
 import de.hpi.rotakka.actors.proxy.ProxyWrapper;
 import de.hpi.rotakka.actors.utils.Messages;
 import lombok.AllArgsConstructor;
+import lombok.Data;
 
+import java.io.Serializable;
 import java.util.*;
 
 public class ProxyCheckingScheduler extends AbstractReplicationActor {
@@ -35,6 +37,27 @@ public class ProxyCheckingScheduler extends AbstractReplicationActor {
         }
     }
 
+    @Data
+    @AllArgsConstructor
+    public static final class GetWork implements Serializable {
+        public static final long serialVersionUID = 1L;
+    }
+
+    @Data
+    @AllArgsConstructor
+    public static final class IntegrateCheckedProxy implements Serializable {
+        public static final long serialVersionUID = 1L;
+        public static CheckedProxy checkedProxy;
+
+        public IntegrateCheckedProxy(CheckedProxy proxy) {
+            checkedProxy = proxy;
+        }
+
+        public CheckedProxy getCheckedProxy() {
+            return this.checkedProxy;
+        }
+    }
+
     @Override
     public Receive createReceive() {
         return receiveBuilder()
@@ -42,6 +65,8 @@ public class ProxyCheckingScheduler extends AbstractReplicationActor {
                 .match(Messages.UnregisterMe.class, this::remove)
                 .match(ProxyWrapper.class, this::add)
                 .match(CheckedProxy.class, this::add)
+                .match(GetWork.class, this::handleGetWork)
+                .match(IntegrateCheckedProxy.class, this::handleIntegrateCheckedProxy)
                 .build();
     }
 
@@ -63,42 +88,24 @@ public class ProxyCheckingScheduler extends AbstractReplicationActor {
     private HashSet<CheckedProxy> checkedProxies = new HashSet<>();
 
     private void add(ProxyWrapper proxy) {
-        log.info("Got Tasked to distribute checking of a proxy");
         if (!availableWorkers.isEmpty()) {
-            log.info("Assigned Work");
             assign(proxy);
         } else {
-            log.info("Delayed Work");
             proxiesToCheck.add(proxy);
         }
     }
 
-    private void add(CheckedProxy proxy) {
-        free(getSender());
-        proxiesInChecking.remove(getSender());
-        boolean newlyAdded = checkedProxies.add(proxy);
+    private void handleGetWork(GetWork msg) {
+        assignWork();
+    }
 
-        if (newlyAdded) {
+    private void handleIntegrateCheckedProxy(IntegrateCheckedProxy msg) {
+        // For some reason this extra message was necessary instead of just taking the CheckedProxy Object
+        boolean newlyAdded = checkedProxies.add(msg.getCheckedProxy());
+        if(newlyAdded) {
             // TODO store proxy into replicator
         }
-        if (!proxiesToCheck.isEmpty()) {
-            ProxyWrapper work = proxiesToCheck.remove();
-            log.info("Assigned Work");
-            assign(work);
-        }
-    }
-
-    private void free(ActorRef worker) {
-        busyWorkers.remove(worker);
-        availableWorkers.add(worker);
-    }
-
-    private void assign(ProxyWrapper proxy) {
-        ActorRef worker = availableWorkers.remove();
-        busyWorkers.add(worker);
-        ProxyInProgress progress = new ProxyInProgress(proxy, worker);
-        proxiesInChecking.put(worker, progress);
-        worker.tell(proxy, getSelf());
+        assignWork();
     }
 
     private void remove(Messages.UnregisterMe msg) {
@@ -112,6 +119,30 @@ public class ProxyCheckingScheduler extends AbstractReplicationActor {
         if (proxiesInChecking.containsKey(worker)) {
             ProxyInProgress work = proxiesInChecking.remove(worker);
             proxiesToCheck.add(work.proxy);
+        }
+    }
+
+    private void assign(ProxyWrapper proxy) {
+        ActorRef worker = availableWorkers.remove();
+        busyWorkers.add(worker);
+        ProxyInProgress progress = new ProxyInProgress(proxy, worker);
+        proxiesInChecking.put(worker, progress);
+        worker.tell(proxy, getSelf());
+    }
+
+
+    private void assignWork() {
+        busyWorkers.remove(getSender());
+        availableWorkers.add(getSender());
+
+        proxiesInChecking.remove(getSender());
+        if (!proxiesToCheck.isEmpty()) {
+            ProxyWrapper work = proxiesToCheck.remove();
+            log.info("Assigned Work upon hearing back");
+            assign(work);
+        }
+        else {
+            log.info("No work available to distribute");
         }
     }
 

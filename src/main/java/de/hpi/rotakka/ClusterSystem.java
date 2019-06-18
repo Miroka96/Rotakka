@@ -160,7 +160,10 @@ abstract class ClusterSystem {
         system.actorOf(ClusterListener.props(), ClusterListener.DEFAULT_NAME);
         system.actorOf(MetricsListener.props(), MetricsListener.DEFAULT_NAME);
         system.actorOf(GraphStoreSlave.props(), GraphStoreSlave.DEFAULT_NAME);
-        system.actorOf(ProxyChecker.props(), ProxyChecker.DEFAULT_NAME);
+        system.actorOf(ProxyChecker.props(), ProxyChecker.DEFAULT_NAME+"-0");
+        system.actorOf(ProxyChecker.props(), ProxyChecker.DEFAULT_NAME+"-1");
+        system.actorOf(ProxyChecker.props(), ProxyChecker.DEFAULT_NAME+"-2");
+        system.actorOf(ProxyChecker.props(), ProxyChecker.DEFAULT_NAME+"-3");
         system.actorOf(ProxyCrawler.props(), ProxyCrawler.DEFAULT_NAME);
         system.actorOf(RotakkaProxy.props(), RotakkaProxy.DEFAULT_NAME);
         system.actorOf(TwitterCrawler.props(), TwitterCrawler.DEFAULT_NAME);

@@ -15,7 +15,13 @@ abstract class AbstractGraphStore extends AbstractLoggingActor {
     @AllArgsConstructor
     public static final class Vertex implements Serializable {
         public static final long serialVersionUID = 1L;
+        String key;
         HashMap<String, Object> properties;
+    }
+
+    static Vertex merge(Vertex into, Vertex from) {
+        into.properties.putAll(from.properties);
+        return into;
     }
 
     @Data
@@ -23,9 +29,17 @@ abstract class AbstractGraphStore extends AbstractLoggingActor {
     @AllArgsConstructor
     public static final class Edge implements Serializable {
         public static final long serialVersionUID = 1L;
-        long from;
-        long to;
+        String key;
+        String from;
+        String to;
         HashMap<String, Object> properties;
+    }
+
+    static Edge merge(Edge into, Edge from) {
+        into.properties.putAll(from.properties);
+        into.from = from.from;
+        into.to = from.to;
+        return into;
     }
 
     @Data

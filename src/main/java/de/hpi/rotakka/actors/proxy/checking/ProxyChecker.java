@@ -25,13 +25,14 @@ public class ProxyChecker extends AbstractLoggingActor {
     }
 
     @Override
-    public void postStop() {}
+    public void postStop() {
+        ProxyCheckingScheduler.getSingleton(context()).tell(new Messages.UnregisterMe(), getSelf());
+    }
 
     @Override
     public Receive createReceive() {
         return receiveBuilder()
-                .match(
-                        ProxyWrapper.class, this::handleCheckProxyAddress)
+                .match(ProxyWrapper.class, this::handleCheckProxyAddress)
                 .build();
     }
 

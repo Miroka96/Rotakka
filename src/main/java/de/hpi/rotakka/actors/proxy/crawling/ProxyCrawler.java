@@ -43,7 +43,9 @@ public class ProxyCrawler extends AbstractActor {
     }
 
     @Override
-    public void postStop() {}
+    public void postStop() {
+        ProxyCrawlingScheduler.getSingleton(context()).tell(new Messages.UnregisterMe(), getSelf());
+    }
 
     @Override
     public Receive createReceive() {

@@ -26,6 +26,11 @@ public class ProxyCheckingScheduler extends AbstractReplicationActor {
         return Props.create(ProxyCheckingScheduler.class);
     }
 
+    public enum ProxyStatus {
+        REACHABLE,
+        UNREACHABLE
+    }
+
     @AllArgsConstructor
     public static class ProxyInProgress {
         ProxyWrapper proxy;

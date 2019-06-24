@@ -2,6 +2,7 @@ package de.hpi.rotakka.actors.twitter;
 
 import akka.actor.Props;
 import de.hpi.rotakka.actors.AbstractLoggingActor;
+import de.hpi.rotakka.actors.proxy.CheckedProxy;
 import de.hpi.rotakka.actors.utils.Messages;
 import de.hpi.rotakka.actors.utils.Tweet;
 import de.hpi.rotakka.actors.utils.WebDriverFactory;
@@ -25,6 +26,7 @@ public class TwitterCrawler extends AbstractLoggingActor {
     public final static String DEFAULT_NAME = "twitterCrawler";
     private final static int PAGE_LOAD_WAIT = 2000;
     private final static int PAGE_AJAX_WAIT = 2000;
+    private int proxyChangeCounter = Integer.MAX_VALUE;
 
     public static Props props() {
         return Props.create(TwitterCrawler.class);
@@ -36,6 +38,7 @@ public class TwitterCrawler extends AbstractLoggingActor {
     public static final class CrawlURL implements Serializable {
         public static final long serialVersionUID = 1L;
         String url;
+        CheckedProxy proxy;
     }
 
     @Override
@@ -49,12 +52,27 @@ public class TwitterCrawler extends AbstractLoggingActor {
     private List<Tweet> extractedTweets = new ArrayList<>();
 
     private void handleCrawlURL(CrawlURL message) {
-        crawl(message.getUrl());
+        crawl(message.getUrl(), message.getProxy());
         getSender().tell(new TwitterCrawlingScheduler.FinishedWork(), getSelf());
     }
 
-    private void crawl(String url) {
+    private void changeProxy(CheckedProxy proxy) {
+        webDriver.close();
+        webDriver = WebDriverFactory.createWebDriver(log, this.context(), proxy);
+    }
+
+    private void crawl(String url, CheckedProxy proxy) {
         log.info("Started working on:" + url);
+
+        if(proxyChangeCounter > 5) {
+            log.info("Changing Proxy");
+            changeProxy(proxy);
+            proxyChangeCounter = 0;
+        }
+        else {
+            proxyChangeCounter++;
+        }
+
         webDriver.get(url);
         HashSet<String> newUsers = new HashSet<>();
 

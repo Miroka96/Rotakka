@@ -17,6 +17,12 @@ public class ProxyCheckingScheduler extends AbstractReplicationActor {
 
     public static final String DEFAULT_NAME = "proxyCheckingScheduler";
     public static final String PROXY_NAME = DEFAULT_NAME + "Proxy";
+    public static final int PROXY_SAMPLE_SIZE = 5;
+
+    private Queue<ProxyWrapper> proxiesToCheck = new LinkedList<>();
+    private HashMap<ActorRef, ProxyInProgress> proxiesInChecking = new HashMap<>();
+    private HashMap<ActorRef, GiveCheckedProxySample> awaitingCheckedProxies = new HashMap<>();
+    private HashSet<CheckedProxy> checkedProxies = new HashSet<>();
 
     public static ActorSelection getSingleton(akka.actor.ActorContext context) {
         return context.actorSelection("/user/" + PROXY_NAME);
@@ -50,6 +56,12 @@ public class ProxyCheckingScheduler extends AbstractReplicationActor {
 
     @Data
     @AllArgsConstructor
+    public static final class GiveCheckedProxySample implements Serializable {
+        public static final long serialVersionUID = 1L;
+    }
+
+    @Data
+    @AllArgsConstructor
     public static final class IntegrateCheckedProxy implements Serializable {
         public static final long serialVersionUID = 1L;
         public static CheckedProxy checkedProxy;
@@ -72,6 +84,7 @@ public class ProxyCheckingScheduler extends AbstractReplicationActor {
                 .match(CheckedProxy.class, this::add)
                 .match(GetWork.class, this::handleGetWork)
                 .match(IntegrateCheckedProxy.class, this::handleIntegrateCheckedProxy)
+                .match(GiveCheckedProxySample.class, this::handleGiveCheckedProxySample)
                 .build();
     }
 
@@ -87,10 +100,6 @@ public class ProxyCheckingScheduler extends AbstractReplicationActor {
         workers.add(worker);
         availableWorkers.add(worker);
     }
-
-    private Queue<ProxyWrapper> proxiesToCheck = new LinkedList<>();
-    private HashMap<ActorRef, ProxyInProgress> proxiesInChecking = new HashMap<>();
-    private HashSet<CheckedProxy> checkedProxies = new HashSet<>();
 
     private void add(ProxyWrapper proxy) {
         if (!availableWorkers.isEmpty()) {
@@ -110,7 +119,27 @@ public class ProxyCheckingScheduler extends AbstractReplicationActor {
         if(newlyAdded) {
             // TODO store proxy into replicator
         }
+        if(awaitingCheckedProxies.size() > 0) {
+            for(ActorRef key : awaitingCheckedProxies.keySet()) {
+                handleGiveCheckedProxySample(awaitingCheckedProxies.get(key));
+            }
+        }
         assignWork();
+    }
+
+    private void handleGiveCheckedProxySample(GiveCheckedProxySample msg) {
+        if(checkedProxies.size() == 0) {
+            awaitingCheckedProxies.put(getSender(), msg);
+        }
+        else {
+            CheckedProxy[] checkedProxiesArray = (CheckedProxy[]) checkedProxies.toArray();
+            ArrayList<CheckedProxy> sample = new ArrayList<>();
+            for (int i = 0; i < PROXY_SAMPLE_SIZE; i++) {
+                int rnd = new Random().nextInt(checkedProxiesArray.length);
+                sample.add(checkedProxiesArray[rnd]);
+            }
+            sender().tell(sample, getSelf());
+        }
     }
 
     private void remove(Messages.UnregisterMe msg) {

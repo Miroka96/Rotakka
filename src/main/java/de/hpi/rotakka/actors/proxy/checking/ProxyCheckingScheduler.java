@@ -59,7 +59,7 @@ public class ProxyCheckingScheduler extends AbstractReplicationActor {
         }
 
         public CheckedProxy getCheckedProxy() {
-            return this.checkedProxy;
+            return checkedProxy;
         }
     }
 

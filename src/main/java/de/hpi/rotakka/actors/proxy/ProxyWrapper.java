@@ -14,6 +14,7 @@ import java.util.logging.Logger;
 @NoArgsConstructor
 @Getter
 public class ProxyWrapper implements Serializable {
+    static final long serialVersionUID = 1;
     private String ip;
     private int port;
     private String protocol;

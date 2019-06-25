@@ -3,6 +3,7 @@ package de.hpi.rotakka.actors.data.graph;
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
 import akka.actor.Props;
+import de.hpi.rotakka.actors.AbstractLoggingActor;
 import de.hpi.rotakka.actors.utils.Messages;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -11,7 +12,7 @@ import lombok.NoArgsConstructor;
 import java.io.Serializable;
 import java.util.*;
 
-public class GraphStoreMaster extends AbstractGraphStore {
+public class GraphStoreMaster extends AbstractLoggingActor {
 
     public static final String DEFAULT_NAME = "graphStoreMaster";
     public static final String PROXY_NAME = DEFAULT_NAME + "Proxy";
@@ -24,6 +25,35 @@ public class GraphStoreMaster extends AbstractGraphStore {
 
     public static ActorSelection getSingleton(akka.actor.ActorContext context) {
         return context.actorSelection("/user/" + PROXY_NAME);
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static final class Vertex implements Serializable {
+        public static final long serialVersionUID = 1L;
+        String key;
+        HashMap<String, Object> properties;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static final class Edge implements Serializable {
+        public static final long serialVersionUID = 1L;
+        String key;
+        String from;
+        String to;
+        HashMap<String, Object> properties;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static final class SubGraph implements Serializable {
+        public static final long serialVersionUID = 1L;
+        Vertex[] vertices;
+        Edge[] edges;
     }
 
     @Data
@@ -79,14 +109,25 @@ public class GraphStoreMaster extends AbstractGraphStore {
     private ArrayList<HashSet<ActorRef>> shardToSlaves;
     private HashMap<ActorRef, HashSet<Integer>> slaveToShards = new HashMap<>(5);
 
-    @Override
     void add(Vertex vertex) {
 
     }
 
-    @Override
     void add(Edge edge) {
 
+    }
+
+    void add(SubGraph subGraph) {
+        if (subGraph.vertices != null) {
+            for (Vertex vertex : subGraph.vertices) {
+                this.add(vertex);
+            }
+        }
+        if (subGraph.edges != null) {
+            for (Edge edge : subGraph.edges) {
+                this.add(edge);
+            }
+        }
     }
 
     private ArrayList<ActorRef> slaves = new ArrayList<>();
@@ -101,20 +142,20 @@ public class GraphStoreMaster extends AbstractGraphStore {
         slaveToShards.put(slave, new HashSet<>());
         int shardsPerSlave = Math.min(shardCount * duplicationLevel / slaves.size(), shardCount);
 
-        ArrayList<GraphStoreSlave.ShardToMove> shardsToMove = new ArrayList<>(shardsPerSlave);
+        ArrayList<GraphStoreSlave.AssignedShard> shardsToMove = new ArrayList<>(shardsPerSlave);
         HashSet<Integer> assignedShards = new HashSet<>(shardsPerSlave);
 
         if (shardCopiesToAssign.size() >= shardsPerSlave) {
             for (int i = 0; i < shardsPerSlave; i++) {
                 int shard = shardCopiesToAssign.remove();
                 assign(slave, shard);
-                shardsToMove.add(new GraphStoreSlave.ShardToMove(null, shard));
+                shardsToMove.add(new GraphStoreSlave.AssignedShard(null, shard));
             }
         } else {
             for (int shard : shardCopiesToAssign) {
                 assign(slave, shard);
                 assignedShards.add(shard);
-                shardsToMove.add(new GraphStoreSlave.ShardToMove(null, shard));
+                shardsToMove.add(new GraphStoreSlave.AssignedShard(null, shard));
 
                 shardsPerSlave--;
             }
@@ -146,7 +187,7 @@ public class GraphStoreMaster extends AbstractGraphStore {
                     }
 
                     if (!assignedShards.contains(shard)) {
-                        shardsToMove.add(new GraphStoreSlave.ShardToMove(previousOwner, shard));
+                        shardsToMove.add(new GraphStoreSlave.AssignedShard(previousOwner, shard));
                         assignedShards.add(shard);
                         break;
                     }
@@ -154,7 +195,7 @@ public class GraphStoreMaster extends AbstractGraphStore {
             }
         }
 
-        slave.tell(new GraphStoreSlave.ShardsToMove(shardsToMove), getSelf());
+        slave.tell(new GraphStoreSlave.AssignedShards(shardsToMove), getSelf());
     }
 
     void assign(ActorRef slave, int shard) {

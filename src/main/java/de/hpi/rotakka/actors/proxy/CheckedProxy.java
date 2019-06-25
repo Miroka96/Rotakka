@@ -10,6 +10,7 @@ import java.util.Date;
 @EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor
 public class CheckedProxy extends ProxyWrapper {
+    public static final long serialVersionUID = 1L;
     Date lastChecked;
 
     // Manual Creation Constructor

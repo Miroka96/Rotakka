@@ -8,6 +8,7 @@ import de.hpi.rotakka.actors.utils.Messages;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.Serializable;
 import java.util.*;
@@ -62,6 +63,7 @@ public class GraphStoreMaster extends AbstractLoggingActor {
     public static final class MovedShard implements Serializable {
         public static final long serialVersionUID = 1;
         int id;
+        ActorRef previousOwner;
         ActorRef newOwner;
     }
 
@@ -85,7 +87,6 @@ public class GraphStoreMaster extends AbstractLoggingActor {
                 shardCopiesToAssign.add(shard);
             }
         }
-
     }
 
     public static Props props() {
@@ -103,21 +104,22 @@ public class GraphStoreMaster extends AbstractLoggingActor {
                 .match(Vertex.class, this::add)
                 .match(Edge.class, this::add)
                 .match(Messages.RegisterMe.class, this::add)
+                .match(MovedShard.class, this::moveShard)
                 .build();
     }
 
     private ArrayList<HashSet<ActorRef>> shardToSlaves;
     private HashMap<ActorRef, HashSet<Integer>> slaveToShards = new HashMap<>(5);
 
-    void add(Vertex vertex) {
-
+    private void add(Vertex vertex) {
+        // TODO
     }
 
-    void add(Edge edge) {
-
+    private void add(Edge edge) {
+        // TODO
     }
 
-    void add(SubGraph subGraph) {
+    private void add(@NotNull SubGraph subGraph) {
         if (subGraph.vertices != null) {
             for (Vertex vertex : subGraph.vertices) {
                 add(vertex);
@@ -133,11 +135,11 @@ public class GraphStoreMaster extends AbstractLoggingActor {
     private ArrayList<ActorRef> slaves = new ArrayList<>();
 
 
-    void add(Messages.RegisterMe slave) {
+    private void add(Messages.RegisterMe slave) {
         add(getSender());
     }
 
-    void add(ActorRef slave) {
+    private void add(ActorRef slave) {
         slaves.add(slave);
         slaveToShards.put(slave, new HashSet<>());
         int shardsPerSlave = Math.min(shardCount * duplicationLevel / slaves.size(), shardCount);
@@ -198,9 +200,21 @@ public class GraphStoreMaster extends AbstractLoggingActor {
         slave.tell(new GraphStoreSlave.AssignedShards(shardsToMove), getSelf());
     }
 
-    void assign(ActorRef slave, int shard) {
+    private void assign(ActorRef slave, int shard) {
         slaveToShards.get(slave).add(shard);
         shardToSlaves.get(shard).add(slave);
+    }
+
+    private void unassign(ActorRef slave, int shard) {
+        slaveToShards.get(slave).remove(shard);
+        shardToSlaves.get(shard).remove(slave);
+    }
+
+    private void moveShard(@NotNull MovedShard shard) {
+        // TODO during shard movement, all messages to the moving copy should be buffered
+        unassign(shard.previousOwner, shard.id);
+        assign(shard.newOwner, shard.id);
+        shard.previousOwner.tell(new GraphStoreSlave.ShardToDelete(shard.id), getSelf());
     }
 
 }

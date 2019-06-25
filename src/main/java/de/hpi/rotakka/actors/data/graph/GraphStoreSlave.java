@@ -10,6 +10,8 @@ import de.hpi.rotakka.actors.utils.Messages;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -43,7 +45,7 @@ public class GraphStoreSlave extends AbstractLoggingActor {
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
-    public static final class RequestShard implements Serializable {
+    public static final class ShardRequest implements Serializable {
         public static final long serialVersionUID = 1;
         int shardNumber;
     }
@@ -51,7 +53,7 @@ public class GraphStoreSlave extends AbstractLoggingActor {
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
-    public static final class ReceivedShard implements Serializable {
+    public static final class SentShard implements Serializable {
         public static final long serialVersionUID = 1;
         int shardNumber;
         SubGraph subGraph;
@@ -60,7 +62,7 @@ public class GraphStoreSlave extends AbstractLoggingActor {
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
-    public static final class DeleteShard implements Serializable {
+    public static final class ShardToDelete implements Serializable {
         public static final long serialVersionUID = 1;
         int shardNumber;
     }
@@ -93,25 +95,48 @@ public class GraphStoreSlave extends AbstractLoggingActor {
     }
 
 
-    static Vertex merge(Vertex into, Vertex from) {
+    private static void merge(@NotNull Vertex into, @NotNull Vertex from) {
         into.properties.putAll(from.properties);
-        return into;
     }
 
-    static Edge merge(Edge into, Edge from) {
+    private static void merge(@NotNull Edge into, @NotNull Edge from) {
         into.properties.putAll(from.properties);
         into.from = from.from;
         into.to = from.to;
-        return into;
     }
 
 
     public static final class ShardSubGraph {
-        HashMap<String, Vertex> vertices;
-        HashMap<String, Edge> edges;
+        HashMap<String, Vertex> vertices = new HashMap<>();
+        HashMap<String, Edge> edges = new HashMap<>();
+
+        ShardSubGraph() {
+        }
+
+        ShardSubGraph(@NotNull SubGraph subGraph) {
+            if (subGraph.vertices != null) {
+                for (Vertex vertex : subGraph.vertices) {
+                    vertices.put(vertex.key, vertex);
+                }
+            }
+            if (subGraph.edges != null) {
+                for (Edge edge : subGraph.edges) {
+                    edges.put(edge.key, edge);
+                }
+            }
+        }
+
+        @NotNull
+        @Contract(" -> new")
+        SubGraph toSubGraph() {
+            return new SubGraph(
+                    vertices.values().toArray(new Vertex[0]),
+                    edges.values().toArray(new Edge[0])
+            );
+        }
     }
 
-    HashMap<Integer, ShardSubGraph> shards;
+    private HashMap<Integer, ShardSubGraph> shards = new HashMap<>();
 
     @Override
     public Receive createReceive() {
@@ -119,6 +144,11 @@ public class GraphStoreSlave extends AbstractLoggingActor {
                 .match(ShardedSubGraph.class, this::add)
                 .match(ShardedVertex.class, this::add)
                 .match(ShardedEdge.class, this::add)
+                .match(AssignedShards.class, this::take)
+                .match(AssignedShard.class, this::take)
+                .match(ShardRequest.class, this::answer)
+                .match(SentShard.class, this::receive)
+                .match(ShardToDelete.class, this::delete)
                 .build();
     }
 
@@ -127,7 +157,7 @@ public class GraphStoreSlave extends AbstractLoggingActor {
         GraphStoreMaster.getSingleton(context()).tell(new Messages.RegisterMe(), getSelf());
     }
 
-    void add(ShardSubGraph subGraph, Vertex vertex) {
+    private void add(@NotNull ShardSubGraph subGraph, @NotNull Vertex vertex) {
         if (subGraph.vertices.containsKey(vertex.key)) {
             merge(subGraph.vertices.get(vertex.key), vertex);
         } else {
@@ -135,13 +165,13 @@ public class GraphStoreSlave extends AbstractLoggingActor {
         }
     }
 
-    void add(ShardedVertex shardedVertex) {
+    private void add(@NotNull ShardedVertex shardedVertex) {
         ShardSubGraph subGraph = shards.get(shardedVertex.shardNumber);
         assert subGraph != null;
         add(subGraph, shardedVertex.vertex);
     }
 
-    void add(ShardSubGraph subGraph, Edge edge) {
+    private void add(@NotNull ShardSubGraph subGraph, @NotNull Edge edge) {
         if (subGraph.edges.containsKey(edge.key)) {
             merge(subGraph.edges.get(edge.key), edge);
         } else {
@@ -149,13 +179,13 @@ public class GraphStoreSlave extends AbstractLoggingActor {
         }
     }
 
-    void add(ShardedEdge shardedEdge) {
+    private void add(@NotNull ShardedEdge shardedEdge) {
         ShardSubGraph subGraph = shards.get(shardedEdge.shardNumber);
         assert subGraph != null;
         add(subGraph, shardedEdge.edge);
     }
 
-    void add(ShardSubGraph shardSubGraph, SubGraph subGraph) {
+    private void add(ShardSubGraph shardSubGraph, @NotNull SubGraph subGraph) {
         if (subGraph.vertices != null) {
             for (Vertex vertex : subGraph.vertices) {
                 add(shardSubGraph, vertex);
@@ -168,22 +198,45 @@ public class GraphStoreSlave extends AbstractLoggingActor {
         }
     }
 
-    void add(ShardedSubGraph shardedSubGraph) {
+    private void add(@NotNull ShardedSubGraph shardedSubGraph) {
         ShardSubGraph subGraph = shards.get(shardedSubGraph.shardNumber);
         assert subGraph != null;
         add(subGraph, shardedSubGraph.subGraph);
     }
 
-    void take(AssignedShards shards) {
+    private void take(@NotNull AssignedShards shards) {
         for (AssignedShard shard : shards.shards) {
             take(shard);
         }
     }
 
-    void take(AssignedShard shard) {
+    private void take(@NotNull AssignedShard shard) {
         if (shard.previousOwner == null) {
-
+            shards.put(shard.shardNumber, new ShardSubGraph());
+        } else {
+            getSender().tell(new ShardRequest(shard.shardNumber), getSelf());
         }
     }
 
+    private void answer(@NotNull ShardRequest request) {
+        getSender().tell(
+                new SentShard(
+                        request.shardNumber,
+                        shards.get(request.shardNumber).toSubGraph()),
+                getSelf());
+    }
+
+    private void receive(@NotNull SentShard shard) {
+        shards.put(shard.shardNumber, new ShardSubGraph(shard.subGraph));
+        GraphStoreMaster.getSingleton(context()).tell(
+                new GraphStoreMaster.MovedShard(
+                        shard.shardNumber,
+                        getSender(),
+                        getSelf()),
+                getSelf());
+    }
+
+    private void delete(@NotNull ShardToDelete shard) {
+        shards.remove(shard.shardNumber);
+    }
 }

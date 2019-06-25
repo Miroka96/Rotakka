@@ -127,28 +127,51 @@ public class GraphStoreSlave extends AbstractLoggingActor {
         GraphStoreMaster.getSingleton(context()).tell(new Messages.RegisterMe(), getSelf());
     }
 
+    void add(ShardSubGraph subGraph, Vertex vertex) {
+        if (subGraph.vertices.containsKey(vertex.key)) {
+            merge(subGraph.vertices.get(vertex.key), vertex);
+        } else {
+            subGraph.vertices.put(vertex.key, vertex);
+        }
+    }
+
     void add(ShardedVertex shardedVertex) {
         ShardSubGraph subGraph = shards.get(shardedVertex.shardNumber);
         assert subGraph != null;
-        if (subGraph.vertices.containsKey(shardedVertex.vertex.key)) {
-            merge(subGraph.vertices.get(shardedVertex.vertex.key), shardedVertex.vertex);
+        add(subGraph, shardedVertex.vertex);
+    }
+
+    void add(ShardSubGraph subGraph, Edge edge) {
+        if (subGraph.edges.containsKey(edge.key)) {
+            merge(subGraph.edges.get(edge.key), edge);
         } else {
-            subGraph.vertices.put(shardedVertex.vertex.key, shardedVertex.vertex);
+            subGraph.edges.put(edge.key, edge);
         }
     }
 
     void add(ShardedEdge shardedEdge) {
         ShardSubGraph subGraph = shards.get(shardedEdge.shardNumber);
         assert subGraph != null;
-        if (subGraph.edges.containsKey(shardedEdge.edge.key)) {
-            merge(subGraph.edges.get(shardedEdge.edge.key), shardedEdge.edge);
-        } else {
-            subGraph.edges.put(shardedEdge.edge.key, shardedEdge.edge);
+        add(subGraph, shardedEdge.edge);
+    }
+
+    void add(ShardSubGraph shardSubGraph, SubGraph subGraph) {
+        if (subGraph.vertices != null) {
+            for (Vertex vertex : subGraph.vertices) {
+                add(shardSubGraph, vertex);
+            }
+        }
+        if (subGraph.edges != null) {
+            for (Edge edge : subGraph.edges) {
+                add(shardSubGraph, edge);
+            }
         }
     }
 
-    void add(ShardedSubGraph subGraph) {
-
+    void add(ShardedSubGraph shardedSubGraph) {
+        ShardSubGraph subGraph = shards.get(shardedSubGraph.shardNumber);
+        assert subGraph != null;
+        add(subGraph, shardedSubGraph.subGraph);
     }
 
     void take(AssignedShards shards) {

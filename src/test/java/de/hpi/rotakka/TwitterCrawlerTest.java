@@ -9,6 +9,7 @@ import org.junit.Test;
 import org.scalatest.junit.JUnitSuite;
 
 public class TwitterCrawlerTest extends JUnitSuite {
+    public static final long serialVersionUID = 1;
 
     static ActorSystem system;
 

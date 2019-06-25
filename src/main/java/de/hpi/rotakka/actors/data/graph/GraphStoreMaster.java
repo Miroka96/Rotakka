@@ -120,12 +120,12 @@ public class GraphStoreMaster extends AbstractLoggingActor {
     void add(SubGraph subGraph) {
         if (subGraph.vertices != null) {
             for (Vertex vertex : subGraph.vertices) {
-                this.add(vertex);
+                add(vertex);
             }
         }
         if (subGraph.edges != null) {
             for (Edge edge : subGraph.edges) {
-                this.add(edge);
+                add(edge);
             }
         }
     }

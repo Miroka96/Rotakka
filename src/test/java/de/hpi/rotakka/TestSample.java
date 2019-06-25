@@ -17,6 +17,7 @@ import org.junit.Test;
 import org.scalatest.junit.JUnitSuite;
 
 public class TestSample extends JUnitSuite {
+    public static final long serialVersionUID = 1;
 
     public static class SomeActor extends AbstractActor {
 

@@ -1,8 +1,14 @@
 package de.hpi.rotakka.actors.data.graph;
 
+import akka.actor.ActorRef;
 import akka.actor.Props;
 import de.hpi.rotakka.actors.utils.Messages;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 public class GraphStoreSlave extends AbstractGraphStore {
@@ -11,6 +17,48 @@ public class GraphStoreSlave extends AbstractGraphStore {
 
     public static Props props() {
         return Props.create(GraphStoreSlave.class);
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static final class ShardToMove implements Serializable {
+        public static final long serialVersionUID = 1;
+        ActorRef previousOwner;
+        int shardNumber;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static final class ShardsToMove implements Serializable {
+        public static final long serialVersionUID = 1;
+        ArrayList<ShardToMove> shards;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static final class RequestShard implements Serializable {
+        public static final long serialVersionUID = 1;
+        int shardNumber;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static final class ReceivedShard implements Serializable {
+        public static final long serialVersionUID = 1;
+        int shardNumber;
+        SubGraph subGraph;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static final class DeleteShard implements Serializable {
+        public static final long serialVersionUID = 1;
+        int shardNumber;
     }
 
     @Override
@@ -28,7 +76,7 @@ public class GraphStoreSlave extends AbstractGraphStore {
     }
 
 
-    HashMap<String, Vertex> vertices;
+    private HashMap<String, Vertex> vertices;
 
     @Override
     void add(Vertex vertex) {
@@ -39,7 +87,7 @@ public class GraphStoreSlave extends AbstractGraphStore {
         }
     }
 
-    HashMap<String, Edge> edges;
+    private HashMap<String, Edge> edges;
 
     @Override
     void add(Edge edge) {

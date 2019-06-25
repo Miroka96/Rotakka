@@ -64,7 +64,7 @@ public class ProxyChecker extends AbstractLoggingActor {
             InetAddress address = InetAddress.getByName(proxy.getIp());
             boolean reachable = address.isReachable(10000);
             if(reachable) {
-                connection = new URL("http://www.google.com").openConnection(proxy.getProxyObject());
+                connection = new URL("https://twitter.com/").openConnection(proxy.getProxyObject());
                 connection.setConnectTimeout(10000);
                 connection.connect();
                 Object content = connection.getContent();

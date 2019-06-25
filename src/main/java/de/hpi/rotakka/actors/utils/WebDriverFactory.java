@@ -2,6 +2,7 @@ package de.hpi.rotakka.actors.utils;
 
 import akka.actor.ActorContext;
 import akka.event.LoggingAdapter;
+import de.hpi.rotakka.actors.proxy.CheckedProxy;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
@@ -10,7 +11,7 @@ public class WebDriverFactory {
 
     public static WebDriver createWebDriver(LoggingAdapter logger, ActorContext context) {
         WebDriver webDriver;
-        webDriver = createSeleniumWebDriver(logger);
+        webDriver = createSeleniumWebDriver(logger, null);
 
         if (webDriver != null) {
             return webDriver;
@@ -22,7 +23,21 @@ public class WebDriverFactory {
         }
     }
 
-    private static WebDriver createSeleniumWebDriver(LoggingAdapter logger) {
+    public static WebDriver createWebDriver(LoggingAdapter logger, ActorContext context, CheckedProxy proxy) {
+        WebDriver webDriver;
+        webDriver = createSeleniumWebDriver(logger, proxy);
+
+        if (webDriver != null) {
+            return webDriver;
+        }
+        else {
+            logger.error("Selenium could not be started, shutting down system");
+            context.system().terminate();
+            return null;
+        }
+    }
+
+    private static WebDriver createSeleniumWebDriver(LoggingAdapter logger, CheckedProxy proxy) {
         // HINT: Don't forget to .close() the WebDriver
         // HINT: Have only one WebDriver for all threads
         // HINT: Make the WebDriver interaction your custom get()-method thread safe
@@ -47,9 +62,13 @@ public class WebDriverFactory {
         }
 
         System.setProperty("webdriver.chrome.driver", envChromeDriverPath);
-        String proxyAddress = System.getenv("PROXY_ADDRESS");
-
         ChromeOptions options = new ChromeOptions();
+        options.setBinary(envChromeBinaryPath);
+
+        if(proxy != null) {
+            String proxyAddress = proxy.getIp() + ":" + proxy.getPort();
+            options.addArguments("--proxy-server=http://" + proxyAddress);
+        }
 
         if (envHeadlessMode) {
             options.addArguments("--no-sandbox");
@@ -58,12 +77,6 @@ public class WebDriverFactory {
             options.addArguments("disable-infobars");
             options.addArguments("--disable-extensions");
             options.addArguments("window-size=1200x600");
-        }
-
-        options.setBinary(envChromeBinaryPath);
-
-        if (proxyAddress != null && !proxyAddress.isEmpty()) {
-            options.addArguments("--proxy-server=http://" + proxyAddress);
         }
 
         return new ChromeDriver(options);

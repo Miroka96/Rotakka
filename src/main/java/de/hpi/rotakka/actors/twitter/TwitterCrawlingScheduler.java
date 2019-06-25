@@ -6,6 +6,7 @@ import akka.actor.Props;
 import akka.cluster.Cluster;
 import akka.cluster.ddata.*;
 import de.hpi.rotakka.actors.AbstractReplicationActor;
+import de.hpi.rotakka.actors.proxy.CheckedProxy;
 import de.hpi.rotakka.actors.utils.Messages;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -32,6 +33,7 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
     private ArrayList<ActorRef> workers = new ArrayList<>();
     private LinkedList<String> workQueue = new LinkedList<>();
     private ArrayList<String> scrapedUsers = new ArrayList<>();
+    private ArrayList<CheckedProxy> storedProxies = new ArrayList<>();
 
     public static Props props() {
         return Props.create(TwitterCrawlingScheduler.class);
@@ -64,6 +66,7 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
                 .match(Replicator.GetFailure.class, m -> log.error("Replicator couldn't get our data"))
                 .match(NotFound.class, m -> log.error("Replicator couldn't find key"))
                 .match(Messages.RegisterMe.class, this::handleRegisterMe)
+                .match(ArrayList.class, this::handleNewCheckedProxies)
                 .build();
     }
 
@@ -73,13 +76,14 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
             workQueue.addAll(createCrawlingLinks(twitterUser, 2018, 2018));
             scrapedUsers.add(twitterUser);
         }
+        storedProxies.add(new CheckedProxy("162.243.173.67", 8080, "HTTP"));
         log.info("Generated "+workQueue.size()+" work packets");
     }
 
     private void handleRegisterMe(Messages.RegisterMe message) {
         // ToDO: Error handling if set is empty
         workers.add(getSender());
-        getSender().tell(new TwitterCrawler.CrawlURL(workQueue.get(0)), this.getSelf());
+        getSender().tell(new TwitterCrawler.CrawlURL(workQueue.get(0), storedProxies.get(new Random().nextInt(storedProxies.size()))), this.getSelf());
         workQueue.remove(0);
     }
 
@@ -106,7 +110,7 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
         // replicator.tell(new Replicator.Get<>(newUsersKey, readNewUsers), getSelf());
         // awaitingWork.add(getSender());
         if(workQueue.size() > 0) {
-            getSender().tell(new TwitterCrawler.CrawlURL(workQueue.pop()), getSelf());
+            getSender().tell(new TwitterCrawler.CrawlURL(workQueue.pop(), storedProxies.get(new Random().nextInt(storedProxies.size()))), getSelf());
         }
         else {
             log.error("NO MORE WORK AVAILABLE; SHUTTING DOWN SYSTEM");
@@ -127,11 +131,19 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
                         Replicator.writeLocal(),
                         curr -> curr.remove(node, nextUser));
                 replicator.tell(update, getSelf());
-                waitingActor.tell(new TwitterCrawler.CrawlURL(nextUser), this.getSelf());
+                waitingActor.tell(new TwitterCrawler.CrawlURL(nextUser, storedProxies.get(new Random().nextInt(storedProxies.size()))), this.getSelf());
             }
         }
         else {
             log.error("Could not handle Successful replicaor Messag");
+        }
+    }
+
+    private void handleNewCheckedProxies(ArrayList<CheckedProxy> proxyList) {
+        for(CheckedProxy proxy : proxyList) {
+            if(!storedProxies.contains(proxy)) {
+                storedProxies.add(proxy);
+            }
         }
     }
 

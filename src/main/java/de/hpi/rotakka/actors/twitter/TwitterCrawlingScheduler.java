@@ -76,7 +76,7 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
             workQueue.addAll(createCrawlingLinks(twitterUser, 2018, 2018));
             scrapedUsers.add(twitterUser);
         }
-        storedProxies.add(new CheckedProxy("95.179.195.208", 3128, "HTTP"));
+        storedProxies.add(new CheckedProxy("162.243.173.67", 8080, "HTTP"));
         log.info("Generated "+workQueue.size()+" work packets");
     }
 

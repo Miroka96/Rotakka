@@ -57,14 +57,17 @@ public class TwitterCrawler extends AbstractLoggingActor {
     }
 
     private void changeProxy(CheckedProxy proxy) {
-        webDriver.close();
+        if(webDriver != null) {
+            webDriver.close();
+        }
         webDriver = WebDriverFactory.createWebDriver(log, this.context(), proxy);
     }
 
     private void crawl(String url, CheckedProxy proxy) {
         log.info("Started working on:" + url);
 
-        if(proxyChangeCounter > 5) {
+        // ToDo: Fix non-working proxies
+        if(proxyChangeCounter > 50000) {
             log.info("Changing Proxy");
             changeProxy(proxy);
             proxyChangeCounter = 0;
@@ -117,7 +120,6 @@ public class TwitterCrawler extends AbstractLoggingActor {
     @Override
     public void preStart() throws Exception {
         super.preStart();
-        webDriver = WebDriverFactory.createWebDriver(log, this.context());
         TwitterCrawlingScheduler.getSingleton(context()).tell(new Messages.RegisterMe(), getSelf());
     }
 

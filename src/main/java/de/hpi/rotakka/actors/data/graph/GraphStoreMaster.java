@@ -8,7 +8,9 @@ import de.hpi.rotakka.actors.utils.Messages;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.Serializable;
 import java.util.*;
@@ -24,7 +26,7 @@ public class GraphStoreMaster extends AbstractLoggingActor {
     public static final int DEFAULT_DUPLICATION_LEVEL = 2;
     private final int duplicationLevel;
 
-    public static ActorSelection getSingleton(akka.actor.ActorContext context) {
+    public static ActorSelection getSingleton(@NotNull akka.actor.ActorContext context) {
         return context.actorSelection("/user/" + PROXY_NAME);
     }
 
@@ -111,23 +113,70 @@ public class GraphStoreMaster extends AbstractLoggingActor {
     private ArrayList<HashSet<ActorRef>> shardToSlaves;
     private HashMap<ActorRef, HashSet<Integer>> slaveToShards = new HashMap<>(5);
 
+    @Contract(pure = true)
+    private int keyToShard(@NotNull final String key) {
+        return key.hashCode() % shardCount;
+    }
+
     private void add(Vertex vertex) {
-        // TODO
+        GraphStoreSlave.ShardedVertex shardedVertex = new GraphStoreSlave.ShardedVertex(keyToShard(vertex.key), vertex);
+        shardToSlaves.get(shardedVertex.shardNumber).forEach(slave -> slave.tell(shardedVertex, getSelf()));
     }
 
     private void add(Edge edge) {
-        // TODO
+        GraphStoreSlave.ShardedEdge shardedEdge = new GraphStoreSlave.ShardedEdge(keyToShard(edge.key), edge);
+        shardToSlaves.get(shardedEdge.shardNumber).forEach(slave -> slave.tell(shardedEdge, getSelf()));
+    }
+
+    public static final class ExtendableSubGraph {
+        public ArrayList<Vertex> vertices = new ArrayList<>();
+        public ArrayList<Edge> edges = new ArrayList<>();
+
+        @Nullable
+        public SubGraph toSubGraph() {
+            Vertex[] vs = null;
+            Edge[] es = null;
+            if (vertices.size() > 0) {
+                vs = vertices.toArray(new Vertex[0]);
+            }
+            if (edges.size() > 0) {
+                es = edges.toArray(new Edge[0]);
+            }
+            if (vs == null && es == null) return null;
+            return new SubGraph(vs, es);
+        }
     }
 
     private void add(@NotNull SubGraph subGraph) {
+        HashMap<Integer, ExtendableSubGraph> shards = new HashMap<>();
         if (subGraph.vertices != null) {
             for (Vertex vertex : subGraph.vertices) {
-                add(vertex);
+                int shardNumber = keyToShard(vertex.key);
+                ExtendableSubGraph extendableSubGraph = shards.get(shardNumber);
+                if (extendableSubGraph == null) {
+                    extendableSubGraph = new ExtendableSubGraph();
+                    shards.put(shardNumber, extendableSubGraph);
+                }
+                extendableSubGraph.vertices.add(vertex);
             }
         }
         if (subGraph.edges != null) {
             for (Edge edge : subGraph.edges) {
-                add(edge);
+                int shardNumber = keyToShard(edge.key);
+                ExtendableSubGraph extendableSubGraph = shards.get(shardNumber);
+                if (extendableSubGraph == null) {
+                    extendableSubGraph = new ExtendableSubGraph();
+                    shards.put(shardNumber, extendableSubGraph);
+                }
+                extendableSubGraph.edges.add(edge);
+            }
+        }
+
+        for (Map.Entry<Integer, ExtendableSubGraph> entry : shards.entrySet()) {
+            SubGraph subGraphByShard = entry.getValue().toSubGraph();
+            if (subGraphByShard != null) {
+                GraphStoreSlave.ShardedSubGraph shardedSubGraph = new GraphStoreSlave.ShardedSubGraph(entry.getKey(), subGraphByShard);
+                shardToSlaves.get(entry.getKey()).forEach(slave -> slave.tell(shardedSubGraph, getSelf()));
             }
         }
     }

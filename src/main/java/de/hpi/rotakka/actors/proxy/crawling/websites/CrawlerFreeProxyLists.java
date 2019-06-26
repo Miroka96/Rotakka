@@ -35,6 +35,7 @@ public class CrawlerFreeProxyLists extends Crawler {
                 proxies.add(new ProxyWrapper(ip, port, protocol));
             }
         }
+        webClient.close();
         return proxies;
     }
 

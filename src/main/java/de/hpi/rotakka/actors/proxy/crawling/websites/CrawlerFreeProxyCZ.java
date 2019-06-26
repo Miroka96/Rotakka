@@ -36,6 +36,7 @@ public class CrawlerFreeProxyCZ extends Crawler {
                 }
             }
         }
+        webClient.close();
         return proxies;
     }
 }

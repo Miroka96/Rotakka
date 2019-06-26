@@ -62,6 +62,7 @@ public class CrawlerUsProxy extends Crawler {
                 }
             }
         }
+        webDriver.close();
         return proxies;
     }
 }

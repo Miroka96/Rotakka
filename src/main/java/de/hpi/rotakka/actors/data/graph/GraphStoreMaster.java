@@ -69,6 +69,40 @@ public class GraphStoreMaster extends AbstractLoggingActor {
         ActorRef newOwner;
     }
 
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static final class RequestedVertexLocation implements Serializable {
+        public static final long serialVersionUID = 1L;
+        String key;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static final class VertexLocation implements Serializable {
+        public static final long serialVersionUID = 1L;
+        String key;
+        ActorRef[] locations;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static final class RequestedEdgeLocation implements Serializable {
+        public static final long serialVersionUID = 1L;
+        String key;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static final class EdgeLocation implements Serializable {
+        public static final long serialVersionUID = 1L;
+        String key;
+        ActorRef[] locations;
+    }
+
     public GraphStoreMaster() {
         this(DEFAULT_SHARD_COUNT, DEFAULT_DUPLICATION_LEVEL);
     }
@@ -107,6 +141,8 @@ public class GraphStoreMaster extends AbstractLoggingActor {
                 .match(Edge.class, this::add)
                 .match(Messages.RegisterMe.class, this::add)
                 .match(MovedShard.class, this::moveShard)
+                .match(RequestedEdgeLocation.class, this::get)
+                .match(RequestedVertexLocation.class, this::get)
                 .build();
     }
 
@@ -264,6 +300,24 @@ public class GraphStoreMaster extends AbstractLoggingActor {
         unassign(shard.previousOwner, shard.id);
         assign(shard.newOwner, shard.id);
         shard.previousOwner.tell(new GraphStoreSlave.ShardToDelete(shard.id), getSelf());
+    }
+
+    private void get(@NotNull RequestedVertexLocation vertex) {
+        getSender().tell(
+                new VertexLocation(
+                        vertex.key,
+                        shardToSlaves.get(keyToShard(vertex.key))
+                                .toArray(new ActorRef[0])),
+                getSelf());
+    }
+
+    private void get(@NotNull RequestedEdgeLocation edge) {
+        getSender().tell(
+                new EdgeLocation(
+                        edge.key,
+                        shardToSlaves.get(keyToShard(edge.key))
+                                .toArray(new ActorRef[0])),
+                getSelf());
     }
 
 }

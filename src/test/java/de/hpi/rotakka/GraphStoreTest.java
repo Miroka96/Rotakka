@@ -14,6 +14,7 @@ import org.junit.Test;
 import org.scalatest.junit.JUnitSuite;
 
 import java.util.ArrayList;
+import java.util.Collections;
 
 public class GraphStoreTest extends JUnitSuite {
     public static final long serialVersionUID = 1;
@@ -46,15 +47,12 @@ public class GraphStoreTest extends JUnitSuite {
     }
 
     @Test
-    public void receiveShardedEdge() {
+    public void receiveShardedElementsOneShard() {
         new TestKit(system) {
             {
                 ActorRef master = makeUsASlave(this, 1);
 
                 GraphStoreMaster.Edge edge = new GraphStoreMaster.Edge("edge1", "nodea", "nodeb", null);
-                master.tell(edge, getRef());
-                expectMsg(new GraphStoreSlave.ShardedEdge(0, edge));
-
                 master.tell(edge, getRef());
                 expectMsg(new GraphStoreSlave.ShardedEdge(0, edge));
 
@@ -68,6 +66,70 @@ public class GraphStoreTest extends JUnitSuite {
                 GraphStoreMaster.SubGraph subGraph = extendableSubGraph.toSubGraph();
                 master.tell(subGraph, getRef());
                 expectMsg(new GraphStoreSlave.ShardedSubGraph(0, subGraph));
+            }
+        };
+    }
+
+    @Test
+    public void receiveShardedElementsTwoShards() {
+        new TestKit(system) {
+            {
+                ActorRef master = makeUsASlave(this, 2);
+
+                GraphStoreMaster.Edge edge1 = new GraphStoreMaster.Edge("edge1", "nodea", "nodeb", null);
+                master.tell(edge1, getRef());
+                expectMsg(new GraphStoreSlave.ShardedEdge(0, edge1));
+
+                GraphStoreMaster.Edge edge2 = new GraphStoreMaster.Edge("edge2", "nodea", "nodeb", null);
+                master.tell(edge2, getRef());
+                expectMsg(new GraphStoreSlave.ShardedEdge(1, edge2));
+
+                GraphStoreMaster.Vertex vertex1 = new GraphStoreMaster.Vertex("vertex", null);
+                master.tell(vertex1, getRef());
+                expectMsg(new GraphStoreSlave.ShardedVertex(0, vertex1));
+
+                GraphStoreMaster.Vertex vertex2 = new GraphStoreMaster.Vertex("vertex1", null);
+                master.tell(vertex2, getRef());
+                expectMsg(new GraphStoreSlave.ShardedVertex(1, vertex2));
+
+                GraphStoreMaster.ExtendableSubGraph extendableSubGraph1 = new GraphStoreMaster.ExtendableSubGraph();
+                GraphStoreMaster.ExtendableSubGraph extendableSubGraph2 = new GraphStoreMaster.ExtendableSubGraph();
+                extendableSubGraph1.vertices.add(vertex1);
+                extendableSubGraph2.vertices.add(vertex2);
+                extendableSubGraph1.edges.add(edge1);
+                extendableSubGraph2.edges.add(edge2);
+                GraphStoreMaster.SubGraph subGraph1 = extendableSubGraph1.toSubGraph();
+                GraphStoreMaster.SubGraph subGraph2 = extendableSubGraph2.toSubGraph();
+                master.tell(subGraph1, getRef());
+                master.tell(subGraph2, getRef());
+
+                GraphStoreSlave.ShardedSubGraph shardedSubGraph1 = new GraphStoreSlave.ShardedSubGraph(0, subGraph1);
+                GraphStoreSlave.ShardedSubGraph shardedSubGraph2 = new GraphStoreSlave.ShardedSubGraph(1, subGraph2);
+
+                expectMsgAllOf(shardedSubGraph1, shardedSubGraph2);
+            }
+        };
+    }
+
+    @Test
+    public void getElementLocations() {
+        new TestKit(system) {
+            {
+                ActorRef master = makeUsASlave(this, 1);
+
+                GraphStoreMaster.Edge edge = new GraphStoreMaster.Edge("edge1", "nodea", "nodeb", null);
+                master.tell(edge, getRef());
+                expectMsgClass(GraphStoreSlave.ShardedEdge.class);
+
+                master.tell(new GraphStoreMaster.RequestedEdgeLocation("edge1"), getRef());
+                expectMsg(new GraphStoreMaster.EdgeLocation("edge1", Collections.singletonList(getRef()).toArray(new ActorRef[0])));
+
+                GraphStoreMaster.Vertex vertex = new GraphStoreMaster.Vertex("vertex1", null);
+                master.tell(vertex, getRef());
+                expectMsgClass(GraphStoreSlave.ShardedVertex.class);
+
+                master.tell(new GraphStoreMaster.RequestedVertexLocation("vertex1"), getRef());
+                expectMsg(new GraphStoreMaster.VertexLocation("vertex1", Collections.singletonList(getRef()).toArray(new ActorRef[0])));
             }
         };
     }

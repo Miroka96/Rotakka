@@ -10,72 +10,104 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.Serializable;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
 
 public class GraphStoreBuffer extends AbstractLoggingActor {
     public static final String DEFAULT_NAME = "graphStoreBuffer";
 
-    public static Props props() {
-        return Props.create(GraphStoreBuffer.class);
+    public static Props props(int shardNumber) {
+        return Props.create(GraphStoreBuffer.class, shardNumber);
+    }
+
+    private final int shardNumber;
+    private ActorRef destination;
+
+    GraphStoreBuffer(int shardNumber) {
+        this.shardNumber = shardNumber;
+    }
+
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static final class Destination implements Serializable {
+        public static final long serialVersionUID = 1;
+        ActorRef slave;
+        boolean startForwarding;
     }
 
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
-    public static final class FlushingDestination implements Serializable {
+    public static final class BufferCommand implements Serializable {
+        public static final long serialVersionUID = 1;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static final class FlushCommand implements Serializable {
         public static final long serialVersionUID = 1;
         ActorRef slave;
+        boolean continueForwarding;
     }
 
     @Override
     public Receive createReceive() {
         return receiveBuilder()
-                .match(GraphStoreSlave.ShardedSubGraph.class, this::add)
-                .match(GraphStoreSlave.ShardedVertex.class, this::add)
-                .match(GraphStoreSlave.ShardedEdge.class, this::add)
-                .match(FlushingDestination.class, this::flushBuffer)
+                .match(Destination.class, this::setDestination)
+                .match(BufferCommand.class, this::startBuffering)
+                .match(GraphStoreSlave.ShardedSubGraph.class, this::buffer)
+                .match(GraphStoreSlave.ShardedVertex.class, this::buffer)
+                .match(GraphStoreSlave.ShardedEdge.class, this::buffer)
+                .match(FlushCommand.class, this::flush)
                 .build();
     }
 
-    private HashMap<Integer, GraphStoreMaster.ExtendableSubGraph> shards = new HashMap<>();
-
-    private void add(@NotNull GraphStoreSlave.ShardedVertex shardedVertex) {
-        GraphStoreMaster.ExtendableSubGraph extendableSubGraph = shards.get(shardedVertex.shardNumber);
-        if (extendableSubGraph == null) {
-            extendableSubGraph = new GraphStoreMaster.ExtendableSubGraph();
-            shards.put(shardedVertex.shardNumber, extendableSubGraph);
-        }
-        extendableSubGraph.vertices.add(shardedVertex.vertex);
+    private void setDestination(Destination destination) {
 
     }
 
-    private void add(@NotNull GraphStoreSlave.ShardedEdge shardedEdge) {
-        GraphStoreMaster.ExtendableSubGraph extendableSubGraph = shards.get(shardedEdge.shardNumber);
-        if (extendableSubGraph == null) {
-            extendableSubGraph = new GraphStoreMaster.ExtendableSubGraph();
-            shards.put(shardedEdge.shardNumber, extendableSubGraph);
-        }
-        extendableSubGraph.edges.add(shardedEdge.edge);
+    private void startBuffering(BufferCommand cmd) {
+
     }
 
-    private void add(@NotNull GraphStoreSlave.ShardedSubGraph shardedSubGraph) {
-        GraphStoreMaster.ExtendableSubGraph extendableSubGraph = shards.get(shardedSubGraph.shardNumber);
-        if (extendableSubGraph == null) {
-            extendableSubGraph = new GraphStoreMaster.ExtendableSubGraph();
-            shards.put(shardedSubGraph.shardNumber, extendableSubGraph);
-        }
-        extendableSubGraph.vertices.addAll(Arrays.asList(shardedSubGraph.subGraph.vertices));
-        extendableSubGraph.edges.addAll(Arrays.asList(shardedSubGraph.subGraph.edges));
+    private GraphStoreMaster.ExtendableSubGraph bufferedShard = new GraphStoreMaster.ExtendableSubGraph();
+
+    private void buffer(@NotNull GraphStoreSlave.ShardedVertex shardedVertex) {
+        bufferedShard.vertices.add(shardedVertex.vertex);
     }
 
-    private void flushBuffer(FlushingDestination destination) {
-        for (Map.Entry<Integer, GraphStoreMaster.ExtendableSubGraph> entry : shards.entrySet()) {
-            GraphStoreMaster.SubGraph subGraphByShard = entry.getValue().toSubGraph();
-            if (subGraphByShard != null) {
-                GraphStoreSlave.ShardedSubGraph shardedSubGraph = new GraphStoreSlave.ShardedSubGraph(entry.getKey(), subGraphByShard);
-                destination.slave.tell(shardedSubGraph, getSelf());
-            }
+    private void buffer(@NotNull GraphStoreSlave.ShardedEdge shardedEdge) {
+        bufferedShard.edges.add(shardedEdge.edge);
+    }
+
+    private void buffer(@NotNull GraphStoreSlave.ShardedSubGraph shardedSubGraph) {
+        bufferedShard.vertices.addAll(Arrays.asList(shardedSubGraph.subGraph.vertices));
+        bufferedShard.edges.addAll(Arrays.asList(shardedSubGraph.subGraph.edges));
+    }
+
+    private void flush(FlushCommand destination) {
+        GraphStoreMaster.SubGraph subGraph = bufferedShard.toSubGraph();
+        if (subGraph != null) {
+            GraphStoreSlave.ShardedSubGraph shardedSubGraph = new GraphStoreSlave.ShardedSubGraph(shardNumber, subGraph);
+            destination.slave.tell(shardedSubGraph, getSelf());
         }
     }
+
+    private void startForwarding() {
+
+    }
+
+    private void forward(GraphStoreSlave.ShardedVertex shardedVertex) {
+        destination.tell(shardedVertex, getSelf());
+    }
+
+    private void forward(GraphStoreSlave.ShardedEdge shardedEdge) {
+        destination.tell(shardedEdge, getSelf());
+    }
+
+    private void forward(GraphStoreSlave.ShardedSubGraph shardedSubGraph) {
+        destination.tell(shardedSubGraph, getSelf());
+    }
+
 }

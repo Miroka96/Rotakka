@@ -62,11 +62,11 @@ public class GraphStoreMaster extends AbstractLoggingActor {
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
-    public static final class MovedShard implements Serializable {
+    public static final class CopiedShard implements Serializable {
         public static final long serialVersionUID = 1;
         int id;
-        ActorRef previousOwner;
-        ActorRef newOwner;
+        ActorRef from;
+        ActorRef to;
     }
 
     @Data
@@ -140,7 +140,7 @@ public class GraphStoreMaster extends AbstractLoggingActor {
                 .match(Vertex.class, this::add)
                 .match(Edge.class, this::add)
                 .match(Messages.RegisterMe.class, this::add)
-                .match(MovedShard.class, this::moveShard)
+                .match(CopiedShard.class, this::moveShard)
                 .match(RequestedEdgeLocation.class, this::get)
                 .match(RequestedVertexLocation.class, this::get)
                 .build();
@@ -295,11 +295,11 @@ public class GraphStoreMaster extends AbstractLoggingActor {
         shardToSlaves.get(shard).remove(slave);
     }
 
-    private void moveShard(@NotNull MovedShard shard) {
+    private void moveShard(@NotNull CopiedShard shard) {
         // TODO during shard movement, all messages to the moving copy should be buffered
-        unassign(shard.previousOwner, shard.id);
-        assign(shard.newOwner, shard.id);
-        shard.previousOwner.tell(new GraphStoreSlave.ShardToDelete(shard.id), getSelf());
+        unassign(shard.from, shard.id);
+        assign(shard.to, shard.id);
+        shard.from.tell(new GraphStoreSlave.ShardToDelete(shard.id), getSelf());
     }
 
     private void get(@NotNull RequestedVertexLocation vertex) {

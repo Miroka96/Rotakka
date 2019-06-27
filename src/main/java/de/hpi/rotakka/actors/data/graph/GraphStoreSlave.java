@@ -251,7 +251,7 @@ public class GraphStoreSlave extends AbstractLoggingActor {
     private void receive(@NotNull SentShard shard) {
         shards.put(shard.shardNumber, new KeyedSubGraph(shard.subGraph));
         GraphStoreMaster.getSingleton(context()).tell(
-                new GraphStoreMaster.MovedShard(
+                new GraphStoreMaster.CopiedShard(
                         shard.shardNumber,
                         getSender(),
                         getSelf()),

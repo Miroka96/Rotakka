@@ -65,13 +65,6 @@ public class TwitterCrawler extends AbstractLoggingActor {
 
     private void crawl(String url, CheckedProxy proxy) {
         log.info("Started working on:" + url);
-        try {
-            log.info("CurrentPage: " + webDriver.getCurrentUrl());
-            log.info("WebDriver Instance: "+webDriver.toString());
-        }
-        catch (NullPointerException e) {
-            log.info("Got Null Pointer from WebDriver");
-        }
 
         // ToDo: Fix non-working proxies
         if(proxyChangeCounter > 50000) {

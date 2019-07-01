@@ -16,6 +16,7 @@ import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class ProxyCrawler extends AbstractActor {
@@ -81,7 +82,12 @@ public class ProxyCrawler extends AbstractActor {
 
         // Single Proxy Sending
         for(ProxyWrapper proxy : proxies) {
-            ProxyCheckingScheduler.getSingleton(context()).tell(proxy, getSelf());
+            if(proxy != null) {
+                ProxyCheckingScheduler.getSingleton(context()).tell(proxy, getSelf());
+            }
+            else {
+                log.info("ERROR: PROXY WAS NULL")
+            }
         }
         ProxyCrawlingScheduler.getSingleton(context()).tell(new ProxyCrawlingScheduler.FinishedScraping(), getSelf());
         log.info("Finished sending messages for "+proxies.size()+" proxies");

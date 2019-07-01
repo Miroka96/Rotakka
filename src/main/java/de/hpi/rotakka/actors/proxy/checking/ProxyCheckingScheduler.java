@@ -172,6 +172,7 @@ public class ProxyCheckingScheduler extends AbstractReplicationActor {
         proxiesInChecking.remove(getSender());
         if (!proxiesToCheck.isEmpty()) {
             ProxyWrapper work = proxiesToCheck.remove();
+            log.info("Incoming proxy: "+work.toString());
             log.info("Assigned Work upon hearing back; Current Checking Queue: " + proxiesToCheck.size());
             assign(work);
         }

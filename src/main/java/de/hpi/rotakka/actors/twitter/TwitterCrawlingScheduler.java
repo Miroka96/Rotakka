@@ -14,6 +14,7 @@ import lombok.NoArgsConstructor;
 import org.omg.CosNaming.NamingContextPackage.NotFound;
 
 import java.io.Serializable;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -26,6 +27,8 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
     private final ActorRef replicator = DistributedData.get(getContext().getSystem()).replicator();
     private final Cluster node = Cluster.get(getContext().getSystem());
     private final Key<ORSet<String>> newUsersKey = ORSetKey.create("new_users");
+    private final Key<ORSet<String>> proxyListKey = ORSetKey.create("checkedProxyListKey");
+
     private final ArrayList<String> entryPoints = new ArrayList<>(Arrays.asList("elonmusk","realDonaldTrump", "HPI_DE", "HillaryClinton", "ladygaga"));
     private final static String TWITTER_ADVANCED_URL = "https://twitter.com/search?l=&q=from%%3A%s%%20since%%3A%s%%20until%%3A%s";
 
@@ -110,6 +113,8 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
         // replicator.tell(new Replicator.Get<>(newUsersKey, readNewUsers), getSelf());
         // awaitingWork.add(getSender());
         if(workQueue.size() > 0) {
+            final Replicator.ReadConsistency readMajority = new Replicator.ReadMajority(Duration.ofSeconds(5));
+            replicator.tell(new Replicator.Get<>(proxyListKey, readMajority), getSelf());
             getSender().tell(new TwitterCrawler.CrawlURL(workQueue.pop(), storedProxies.get(new Random().nextInt(storedProxies.size()))), getSelf());
         }
         else {
@@ -132,6 +137,22 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
                         curr -> curr.remove(node, nextUser));
                 replicator.tell(update, getSelf());
                 waitingActor.tell(new TwitterCrawler.CrawlURL(nextUser, storedProxies.get(new Random().nextInt(storedProxies.size()))), this.getSelf());
+            }
+        }
+        if(message.key().equals(proxyListKey)) {
+            log.info("Trying to dezerialize Proxies");
+            // Dezerialize the Proxies and add them to the list
+            Replicator.GetSuccess<ORSet<String>> getSuccessObject = message;
+            Set<String> serializedProxySet = getSuccessObject.dataValue().getElements();
+            if(serializedProxySet.size() > 0) {
+                storedProxies = new ArrayList<>();
+                for (String proxyString : serializedProxySet) {
+                    storedProxies.add(new CheckedProxy(proxyString));
+                }
+                log.info("Sucessfully added proxies");
+            }
+            else {
+                log.info("Replicator Set was size 0, did not add anything");
             }
         }
         else {

@@ -1,5 +1,6 @@
 package de.hpi.rotakka.actors.proxy;
 
+import com.sun.org.apache.xml.internal.security.utils.Base64;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -34,7 +35,7 @@ public class CheckedProxy extends ProxyWrapper {
 
     public CheckedProxy(String seralizationString) {
         try {
-            byte b[] = seralizationString.getBytes();
+            byte b[] = Base64.decode(seralizationString.getBytes());
             ByteArrayInputStream bi = new ByteArrayInputStream(b);
             ObjectInputStream si = new ObjectInputStream(bi);
             CheckedProxy obj = (CheckedProxy) si.readObject();
@@ -56,7 +57,7 @@ public class CheckedProxy extends ProxyWrapper {
             ObjectOutputStream so = new ObjectOutputStream(bo);
             so.writeObject(this);
             so.flush();
-            return bo.toString();
+            return Base64.encode(bo.toByteArray());
         } catch (Exception e) {
             System.out.println(e);
         }

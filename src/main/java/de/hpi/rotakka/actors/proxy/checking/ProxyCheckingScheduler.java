@@ -39,11 +39,11 @@ public class ProxyCheckingScheduler extends AbstractReplicationActor {
 
     @AllArgsConstructor
     public static class ProxyInProgress {
-        ProxyWrapper proxy;
+        List<ProxyWrapper> proxy;
         Date started;
         ActorRef worker;
 
-        ProxyInProgress(ProxyWrapper proxy, ActorRef worker) {
+        ProxyInProgress(List<ProxyWrapper> proxy, ActorRef worker) {
             this(proxy, new Date(), worker);
         }
     }
@@ -102,8 +102,10 @@ public class ProxyCheckingScheduler extends AbstractReplicationActor {
     }
 
     private void add(ProxyWrapper proxy) {
+        List<ProxyWrapper> proxyList = new ArrayList<>();
+        proxyList.add(proxy);
         if (!availableWorkers.isEmpty()) {
-            assign(proxy);
+            assign(proxyList);
         } else {
             proxiesToCheck.add(proxy);
         }
@@ -150,18 +152,12 @@ public class ProxyCheckingScheduler extends AbstractReplicationActor {
         workers.remove(worker);
         availableWorkers.remove(worker);
         busyWorkers.remove(worker);
-        if (proxiesInChecking.containsKey(worker)) {
-            ProxyInProgress work = proxiesInChecking.remove(worker);
-            proxiesToCheck.add(work.proxy);
-        }
     }
 
-    private void assign(ProxyWrapper proxy) {
+    private void assign(List<ProxyWrapper> proxyList) {
         ActorRef worker = availableWorkers.remove();
         busyWorkers.add(worker);
-        ProxyInProgress progress = new ProxyInProgress(proxy, worker);
-        proxiesInChecking.put(worker, progress);
-        worker.tell(proxy, getSelf());
+        worker.tell(new ProxyChecker.CheckProxies(proxyList), getSelf());
     }
 
 
@@ -169,12 +165,15 @@ public class ProxyCheckingScheduler extends AbstractReplicationActor {
         busyWorkers.remove(getSender());
         availableWorkers.add(getSender());
 
-        proxiesInChecking.remove(getSender());
         if (!proxiesToCheck.isEmpty()) {
-            ProxyWrapper work = proxiesToCheck.remove();
-            log.info("Incoming proxy: "+work.toString());
+            ArrayList<ProxyWrapper> proxyList = new ArrayList<>();
+            int listLength = 5;
+            while(proxiesToCheck.size() > 0 && listLength > 0) {
+                proxyList.add(proxiesToCheck.remove());
+                listLength--;
+            }
             log.info("Assigned Work upon hearing back; Current Checking Queue: " + proxiesToCheck.size());
-            assign(work);
+            assign(proxyList);
         }
         else {
             log.info("No work available to distribute");

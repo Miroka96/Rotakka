@@ -5,11 +5,15 @@ import de.hpi.rotakka.actors.AbstractLoggingActor;
 import de.hpi.rotakka.actors.proxy.CheckedProxy;
 import de.hpi.rotakka.actors.proxy.ProxyWrapper;
 import de.hpi.rotakka.actors.utils.Messages;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.List;
 
 public class ProxyChecker extends AbstractLoggingActor {
 
@@ -17,6 +21,13 @@ public class ProxyChecker extends AbstractLoggingActor {
 
     public static Props props() {
         return Props.create(ProxyChecker.class);
+    }
+
+    @Data
+    @AllArgsConstructor
+    public static final class CheckProxies implements Serializable {
+        public static final long serialVersionUID = 1L;
+        public List<ProxyWrapper> proxyList;
     }
 
     @Override
@@ -32,26 +43,28 @@ public class ProxyChecker extends AbstractLoggingActor {
     @Override
     public Receive createReceive() {
         return receiveBuilder()
-                .match(ProxyWrapper.class, this::handleCheckProxyAddress)
+                .match(CheckProxies.class, this::handleCheckProxyAddress)
                 .build();
     }
 
     /**
      * This method will handle the CheckProxyAddress message
      */
-    private void handleCheckProxyAddress(ProxyWrapper proxy) {
-        if(isReachable(proxy)) {
-            long respTime = averageResponseTime(proxy);
-            if(respTime >= 0) {
-                proxy.setAverageResponseTime(respTime);
-                log.info("Proxy "+proxy.getIp()+" is working with ~"+proxy.getAverageResponseTime()+" ms");
-                CheckedProxy checkedProxy = new CheckedProxy(proxy);
-                ProxyCheckingScheduler.getSingleton(getContext()).tell(new ProxyCheckingScheduler.IntegrateCheckedProxy(checkedProxy), getSelf());
+    private void handleCheckProxyAddress(CheckProxies msg) {
+        List<ProxyWrapper> proxyList = msg.getProxyList();
+        for(ProxyWrapper proxy : proxyList) {
+            if (isReachable(proxy)) {
+                long respTime = averageResponseTime(proxy);
+                if (respTime >= 0) {
+                    proxy.setAverageResponseTime(respTime);
+                    log.info("Proxy " + proxy.getIp() + " is working with ~" + proxy.getAverageResponseTime() + " ms");
+                    CheckedProxy checkedProxy = new CheckedProxy(proxy);
+                    ProxyCheckingScheduler.getSingleton(getContext()).tell(new ProxyCheckingScheduler.IntegrateCheckedProxy(checkedProxy), getSelf());
+                }
+            } else {
+                log.info("Proxy " + proxy.getIp() + " is disabled");
+                ProxyCheckingScheduler.getSingleton(getContext()).tell(new ProxyCheckingScheduler.GetWork(), getSelf());
             }
-        }
-        else {
-            log.info("Proxy "+proxy.getIp()+" is disabled");
-            ProxyCheckingScheduler.getSingleton(getContext()).tell(new ProxyCheckingScheduler.GetWork(), getSelf());
         }
     }
 

@@ -15,7 +15,6 @@ import de.hpi.rotakka.actors.cluster.ClusterListener;
 import de.hpi.rotakka.actors.cluster.MetricsListener;
 import de.hpi.rotakka.actors.data.graph.GraphStoreMaster;
 import de.hpi.rotakka.actors.data.graph.GraphStoreSlave;
-import de.hpi.rotakka.actors.proxy.RotakkaProxy;
 import de.hpi.rotakka.actors.proxy.checking.ProxyChecker;
 import de.hpi.rotakka.actors.proxy.checking.ProxyCheckingScheduler;
 import de.hpi.rotakka.actors.proxy.crawling.ProxyCrawler;
@@ -162,7 +161,6 @@ abstract class ClusterSystem {
         system.actorOf(ProxyChecker.props(), ProxyChecker.DEFAULT_NAME+"-0");
         system.actorOf(ProxyChecker.props(), ProxyChecker.DEFAULT_NAME+"-1");
         system.actorOf(ProxyCrawler.props(), ProxyCrawler.DEFAULT_NAME);
-        system.actorOf(RotakkaProxy.props(), RotakkaProxy.DEFAULT_NAME);
         system.actorOf(TwitterCrawler.props(), TwitterCrawler.DEFAULT_NAME+"-0");
         // system.actorOf(TwitterCrawler.props(), TwitterCrawler.DEFAULT_NAME+"-1");
         // add cli parameters to specify the worker counts

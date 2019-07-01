@@ -60,14 +60,20 @@ public class TwitterCrawler extends AbstractLoggingActor {
         if(webDriver != null) {
             webDriver.close();
         }
-        webDriver = WebDriverFactory.createWebDriver(log, this.context(), proxy);
+        if(proxy != null) {
+            webDriver = WebDriverFactory.createWebDriver(log, this.context(), proxy);
+        }
+        else {
+            log.info("INFO: Starting WebDriver without a Proxy");
+            webDriver = WebDriverFactory.createWebDriver(log, this.context());
+        }
     }
 
     private void crawl(String url, CheckedProxy proxy) {
         log.info("Started working on:" + url);
 
         // ToDo: Fix non-working proxies
-        if(proxyChangeCounter > 50000) {
+        if(proxyChangeCounter > 3) {
             log.info("Changing Proxy");
             changeProxy(proxy);
             proxyChangeCounter = 0;

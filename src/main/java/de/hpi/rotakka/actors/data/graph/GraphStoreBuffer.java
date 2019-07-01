@@ -37,7 +37,6 @@ public class GraphStoreBuffer extends AbstractLoggingActor {
 
     @Data
     @NoArgsConstructor
-    @AllArgsConstructor
     public static final class BufferCommand implements Serializable {
         public static final long serialVersionUID = 1;
     }

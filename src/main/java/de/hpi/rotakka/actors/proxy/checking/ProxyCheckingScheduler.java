@@ -3,6 +3,8 @@ package de.hpi.rotakka.actors   .proxy.checking;
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
 import akka.actor.Props;
+import akka.cluster.Cluster;
+import akka.cluster.ddata.*;
 import de.hpi.rotakka.actors.AbstractReplicationActor;
 import de.hpi.rotakka.actors.proxy.CheckedProxy;
 import de.hpi.rotakka.actors.proxy.ProxyWrapper;
@@ -20,9 +22,12 @@ public class ProxyCheckingScheduler extends AbstractReplicationActor {
     public static final int PROXY_SAMPLE_SIZE = 5;
 
     private Queue<ProxyWrapper> proxiesToCheck = new LinkedList<>();
-    private HashMap<ActorRef, ProxyInProgress> proxiesInChecking = new HashMap<>();
     private HashMap<ActorRef, GiveCheckedProxySample> awaitingCheckedProxies = new HashMap<>();
     private HashSet<CheckedProxy> checkedProxies = new HashSet<>();
+
+    private final ActorRef replicator = DistributedData.get(getContext().getSystem()).replicator();
+    private final Key<ORSet<String>> dataKey = ORSetKey.create("checkedProxyListKey");
+    private final Cluster node = Cluster.get(getContext().getSystem());
 
     public static ActorSelection getSingleton(akka.actor.ActorContext context) {
         return context.actorSelection("/user/" + PROXY_NAME);
@@ -35,17 +40,6 @@ public class ProxyCheckingScheduler extends AbstractReplicationActor {
     public enum ProxyStatus {
         REACHABLE,
         UNREACHABLE
-    }
-
-    @AllArgsConstructor
-    public static class ProxyInProgress {
-        List<ProxyWrapper> proxy;
-        Date started;
-        ActorRef worker;
-
-        ProxyInProgress(List<ProxyWrapper> proxy, ActorRef worker) {
-            this(proxy, new Date(), worker);
-        }
     }
 
     @Data
@@ -119,7 +113,10 @@ public class ProxyCheckingScheduler extends AbstractReplicationActor {
         // For some reason this extra message was necessary instead of just taking the CheckedProxy Object
         boolean newlyAdded = checkedProxies.add(msg.getCheckedProxy());
         if(newlyAdded) {
+            log.info("Trying to add CheckedProxies to the DataReplicator");
             // TODO store proxy into replicator
+            Replicator.Update<ORSet<String>> update = new Replicator.Update<>(dataKey, ORSet.create(), Replicator.writeLocal(), curr -> curr.add(node, msg.getCheckedProxy().serialize()));
+            replicator.tell(update, getSelf());
         }
         if(awaitingCheckedProxies.size() > 0) {
             for(ActorRef key : awaitingCheckedProxies.keySet()) {

@@ -4,6 +4,10 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.Date;
 
 @Data
@@ -26,5 +30,36 @@ public class CheckedProxy extends ProxyWrapper {
         this.setAverageResponseTime(proxyWrapper.getAverageResponseTime());
         this.setProtocol(proxyWrapper.getProtocol());
         this.setLastChecked(new Date(System.currentTimeMillis()));
+    }
+
+    public CheckedProxy(String seralizationString) {
+        try {
+            byte b[] = seralizationString.getBytes();
+            ByteArrayInputStream bi = new ByteArrayInputStream(b);
+            ObjectInputStream si = new ObjectInputStream(bi);
+            CheckedProxy obj = (CheckedProxy) si.readObject();
+
+            this.setIp(obj.getIp());
+            this.setPort(obj.getPort());
+            this.setAverageResponseTime(obj.getAverageResponseTime());
+            this.setProtocol(obj.getProtocol());
+            this.setLastChecked(obj.getLastChecked());
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+
+    }
+
+    public String serialize() {
+        try {
+            ByteArrayOutputStream bo = new ByteArrayOutputStream();
+            ObjectOutputStream so = new ObjectOutputStream(bo);
+            so.writeObject(this);
+            so.flush();
+            return bo.toString();
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+        return null;
     }
 }

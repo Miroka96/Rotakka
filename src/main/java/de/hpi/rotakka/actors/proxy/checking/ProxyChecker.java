@@ -7,6 +7,7 @@ import de.hpi.rotakka.actors.proxy.ProxyWrapper;
 import de.hpi.rotakka.actors.utils.Messages;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -25,6 +26,7 @@ public class ProxyChecker extends AbstractLoggingActor {
 
     @Data
     @AllArgsConstructor
+    @NoArgsConstructor
     public static final class CheckProxies implements Serializable {
         public static final long serialVersionUID = 1L;
         public List<ProxyWrapper> proxyList;

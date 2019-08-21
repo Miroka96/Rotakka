@@ -236,7 +236,7 @@ public class GraphStoreSlave extends AbstractLoggingActor {
         if (shard.previousOwner == null) {
             shards.put(shard.shardNumber, new KeyedSubGraph());
         } else {
-            getSender().tell(new ShardRequest(shard.shardNumber), getSelf());
+            shard.previousOwner.tell(new ShardRequest(shard.shardNumber), getSelf());
         }
     }
 

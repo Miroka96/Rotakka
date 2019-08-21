@@ -5,7 +5,11 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.testkit.javadsl.TestKit;
 import de.hpi.rotakka.actors.data.graph.GraphStoreMaster;
+import de.hpi.rotakka.actors.data.graph.GraphStoreMaster.SubGraph;
 import de.hpi.rotakka.actors.data.graph.GraphStoreSlave;
+import de.hpi.rotakka.actors.data.graph.GraphStoreSlave.AssignedShards;
+import de.hpi.rotakka.actors.data.graph.GraphStoreSlave.ShardedSubGraph;
+import de.hpi.rotakka.actors.data.graph.util.ExtendableSubGraph;
 import de.hpi.rotakka.actors.utils.Messages;
 import org.jetbrains.annotations.NotNull;
 import org.junit.AfterClass;
@@ -32,13 +36,14 @@ public class GraphStoreTest extends JUnitSuite {
         system = null;
     }
 
+    @NotNull
     private ActorRef makeUsASlave(@NotNull TestKit us, int shardCount) {
         final ActorRef master = system.actorOf(GraphStoreMaster.props(shardCount, 1));
 
         // we make ourselves a slave
         master.tell(new Messages.RegisterMe(), us.getRef());
 
-        GraphStoreSlave.AssignedShards shardAssignment = new GraphStoreSlave.AssignedShards(new ArrayList<>());
+        AssignedShards shardAssignment = new AssignedShards(new ArrayList<>());
         for (int shard = 0; shard < shardCount; shard++) {
             shardAssignment.getShards().add(new GraphStoreSlave.AssignedShard(null, shard));
         }
@@ -60,12 +65,12 @@ public class GraphStoreTest extends JUnitSuite {
                 master.tell(vertex, getRef());
                 expectMsg(new GraphStoreSlave.ShardedVertex(0, vertex));
 
-                GraphStoreMaster.ExtendableSubGraph extendableSubGraph = new GraphStoreMaster.ExtendableSubGraph();
+                ExtendableSubGraph extendableSubGraph = new ExtendableSubGraph();
                 extendableSubGraph.vertices.add(vertex);
                 extendableSubGraph.edges.add(edge);
-                GraphStoreMaster.SubGraph subGraph = extendableSubGraph.toSubGraph();
+                SubGraph subGraph = extendableSubGraph.toSubGraph();
                 master.tell(subGraph, getRef());
-                expectMsg(new GraphStoreSlave.ShardedSubGraph(0, subGraph));
+                expectMsg(new ShardedSubGraph(0, subGraph));
             }
         };
     }
@@ -92,19 +97,19 @@ public class GraphStoreTest extends JUnitSuite {
                 master.tell(vertex2, getRef());
                 expectMsg(new GraphStoreSlave.ShardedVertex(1, vertex2));
 
-                GraphStoreMaster.ExtendableSubGraph extendableSubGraph1 = new GraphStoreMaster.ExtendableSubGraph();
-                GraphStoreMaster.ExtendableSubGraph extendableSubGraph2 = new GraphStoreMaster.ExtendableSubGraph();
+                ExtendableSubGraph extendableSubGraph1 = new ExtendableSubGraph();
+                ExtendableSubGraph extendableSubGraph2 = new ExtendableSubGraph();
                 extendableSubGraph1.vertices.add(vertex1);
                 extendableSubGraph2.vertices.add(vertex2);
                 extendableSubGraph1.edges.add(edge1);
                 extendableSubGraph2.edges.add(edge2);
-                GraphStoreMaster.SubGraph subGraph1 = extendableSubGraph1.toSubGraph();
-                GraphStoreMaster.SubGraph subGraph2 = extendableSubGraph2.toSubGraph();
+                SubGraph subGraph1 = extendableSubGraph1.toSubGraph();
+                SubGraph subGraph2 = extendableSubGraph2.toSubGraph();
                 master.tell(subGraph1, getRef());
                 master.tell(subGraph2, getRef());
 
-                GraphStoreSlave.ShardedSubGraph shardedSubGraph1 = new GraphStoreSlave.ShardedSubGraph(0, subGraph1);
-                GraphStoreSlave.ShardedSubGraph shardedSubGraph2 = new GraphStoreSlave.ShardedSubGraph(1, subGraph2);
+                ShardedSubGraph shardedSubGraph1 = new ShardedSubGraph(0, subGraph1);
+                ShardedSubGraph shardedSubGraph2 = new ShardedSubGraph(1, subGraph2);
 
                 expectMsgAllOf(shardedSubGraph1, shardedSubGraph2);
             }

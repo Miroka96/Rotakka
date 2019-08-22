@@ -107,13 +107,22 @@ public class GraphStoreMaster extends AbstractLoggingActor {
         ActorRef[] locations;
     }
 
-
+    /*
+        @Data
+        @NoArgsConstructor
+        public static final class StartBuffering implements Serializable {
+            public static final long serialVersionUID = 1;
+            ActorRef slave;
+            int shardNumber;
+        }
+    */
     @Data
     @NoArgsConstructor
-    public static final class StartBuffering implements Serializable {
+    public static final class StartBufferings implements Serializable {
         public static final long serialVersionUID = 1;
-        ActorRef slave;
         int shardNumber;
+        ActorRef[] affectedShardHolders;
+        ActorRef requestedBy;
     }
 
     private final ShardMapper shardMapper;
@@ -143,7 +152,8 @@ public class GraphStoreMaster extends AbstractLoggingActor {
                 .match(Vertex.class, this::add)
                 .match(Edge.class, this::add)
                 .match(Messages.RegisterMe.class, this::add)
-                .match(StartBuffering.class, this::startBuffering)
+                //.match(StartBuffering.class, this::startBuffering)
+                .match(StartBufferings.class, this::startBuffering)
                 .match(CopiedShard.class, this::moveShard)
                 .match(RequestedEdgeLocation.class, this::get)
                 .match(RequestedVertexLocation.class, this::get)
@@ -255,8 +265,13 @@ public class GraphStoreMaster extends AbstractLoggingActor {
         slave.tell(new AssignedShards(shardsToMove), getSelf());
     }
 
-    private void startBuffering(@NotNull StartBuffering cmd) {
-        shardMapper.tellBuffer(cmd.shardNumber, cmd.slave, new GraphStoreBuffer.StartBuffering(), getSelf());
+    private void startBuffering(@NotNull StartBufferings cmds) {
+        for (ActorRef slave : cmds.affectedShardHolders) {
+            GraphStoreBuffer.StartBuffering start = new GraphStoreBuffer.StartBuffering();
+            start.notify = slave;
+            start.originalRequest = cmds;
+            shardMapper.tellBuffer(cmds.shardNumber, slave, start, getSelf());
+        }
     }
 
     private void moveShard(@NotNull CopiedShard shard) {

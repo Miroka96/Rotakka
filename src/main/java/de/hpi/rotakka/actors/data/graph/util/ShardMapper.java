@@ -14,7 +14,7 @@ public class ShardMapper {
     private final int shardCount;
     private final int duplicationLevel;
     private final ActorContext context;
-    private Queue<Integer> shardCopiesToAssign = new LinkedList<Integer>();
+    private Queue<Integer> shardCopiesToAssign = new LinkedList<>();
 
     // shard -> slave -> buffer
     private ArrayList<HashMap<ActorRef, ActorRef>> shardToSlaves;

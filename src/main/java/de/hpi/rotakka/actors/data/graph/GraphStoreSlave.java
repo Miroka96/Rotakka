@@ -54,6 +54,15 @@ public class GraphStoreSlave extends AbstractLoggingActor {
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
+    public static final class StartedBuffering implements Serializable {
+        public static final long serialVersionUID = 1;
+        GraphStoreMaster.StartBufferings originalRequest;
+    }
+
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static final class SentShard implements Serializable {
         public static final long serialVersionUID = 1;
         int shardNumber;

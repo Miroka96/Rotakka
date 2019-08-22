@@ -20,22 +20,27 @@ https://sequencediagram.org/
 title GraphStore
 
 participant Master
-participant Buffer
-participant Slave
+participant Buffer1
+participant Buffer2
+participant Slave1
 participant Slave2
 
-Slave -> Master: RegisterMe
-Master -> Slave: AssignedShards
+Slave1 -> Master: RegisterMe
+Master -> Slave1: AssignedShards
 opt
-Slave -> Slave2: ShardRequest
+Slave1 -> Slave2: ShardRequest
 Slave2 -> Master: StartBuffering
-Master -> Buffer: StartBuffering
-Buffer -> Slave2: StartedBuffering
-Slave2 -> Slave: SentShard
+Master -> Buffer1: StartBuffering
+Buffer1 -> Slave1: StartedBuffering
+Master -> Buffer2: StartBuffering
+Buffer2 -> Slave2: StartedBuffering
+Slave2 -> Slave1: SentShard
 end
-Slave -> Master: CopiedShard
-Master ->Buffer: StopBuffering(new target)
-Buffer -> Slave: SubGraph
+Slave1 -> Master: CopiedShard
+Master ->Buffer1: StopBuffering(new target)
+Buffer1 -> Slave1: SubGraph
+Master ->Buffer2: StopBuffering(new target)
+Buffer2 -> Slave2: SubGraph
 opt
 Master -> Slave2: ShardToDelete
 end
@@ -64,6 +69,8 @@ public class GraphStoreBuffer extends AbstractLoggingActor {
     @NoArgsConstructor
     public static final class StartBuffering implements Serializable {
         public static final long serialVersionUID = 1;
+        ActorRef notify;
+        GraphStoreMaster.StartBufferings originalRequest;
     }
 
     @Data
@@ -86,7 +93,10 @@ public class GraphStoreBuffer extends AbstractLoggingActor {
 
     private void startBuffering(StartBuffering cmd) {
         this.buffering = true;
-        bufferedShard = new ExtendableSubGraph();
+        if (bufferedShard == null) {
+            bufferedShard = new ExtendableSubGraph();
+        }
+        cmd.notify.tell(new GraphStoreSlave.StartedBuffering(cmd.originalRequest), getSelf());
     }
 
     private void stopBuffering(@NotNull StopBuffering cmd) {

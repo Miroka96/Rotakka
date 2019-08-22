@@ -224,7 +224,12 @@ public class GraphStoreMaster extends AbstractLoggingActor {
         int shardsLeft = shardsPerSlave - shardMapper.shardsUnassigned();
         for (int i = 0; i < shardsPerSlave && shardMapper.shardsUnassigned() > 0; i++) {
             int shard = shardMapper.assignShard(slave);
-            shardsToMove.add(new AssignedShard(null, shard));
+            ActorRef[] assignedSlaves = shardMapper.getSlaves(shard);
+            ActorRef previousOwner = null;
+            if (assignedSlaves.length > 1) {
+                previousOwner = assignedSlaves[0];
+            }
+            shardsToMove.add(new AssignedShard(previousOwner, shard));
         }
 
         if (shardsLeft > 0) {

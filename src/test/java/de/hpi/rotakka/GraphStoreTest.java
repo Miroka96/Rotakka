@@ -3,6 +3,7 @@ package de.hpi.rotakka;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 import de.hpi.rotakka.actors.data.graph.GraphStoreMaster;
 import de.hpi.rotakka.actors.data.graph.GraphStoreMaster.SubGraph;
@@ -11,19 +12,21 @@ import de.hpi.rotakka.actors.data.graph.GraphStoreSlave.AssignedShards;
 import de.hpi.rotakka.actors.data.graph.GraphStoreSlave.ShardedSubGraph;
 import de.hpi.rotakka.actors.data.graph.util.ExtendableSubGraph;
 import de.hpi.rotakka.actors.utils.Messages;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.scalatest.junit.JUnitSuite;
+import scala.collection.JavaConverters;
 
 import java.util.ArrayList;
-import java.util.Collections;
 
 public class GraphStoreTest extends JUnitSuite {
     public static final long serialVersionUID = 1;
 
     private static ActorSystem system;
+    private static ActorRef master;
 
     @BeforeClass
     public static void setup() {
@@ -36,12 +39,44 @@ public class GraphStoreTest extends JUnitSuite {
         system = null;
     }
 
+    private static ActorRef createMaster(int shardCount, int duplicationLevel) {
+        return createMaster(shardCount, duplicationLevel, false);
+    }
+
+    private static ActorRef createMaster(int shardCount, int duplicationLevel, boolean unique) {
+        // unique must be true to enable slaves to find the master
+        if (unique) {
+            return system.actorOf(GraphStoreMaster.props(shardCount, duplicationLevel), GraphStoreMaster.PROXY_NAME);
+        } else {
+            return system.actorOf(GraphStoreMaster.props(shardCount, duplicationLevel));
+        }
+
+    }
+
     @NotNull
     private ActorRef makeUsASlave(@NotNull TestKit us, int shardCount) {
-        final ActorRef master = system.actorOf(GraphStoreMaster.props(shardCount, 1));
+        return makeUsASlave(createMaster(shardCount, 1), us, shardCount);
+    }
 
+    @Contract("_, _, _ -> param1")
+    @NotNull
+    private ActorRef makeUsASlave(@NotNull ActorRef master, @NotNull TestKit us, int shardCount) {
         // we make ourselves a slave
         master.tell(new Messages.RegisterMe(), us.getRef());
+
+        AssignedShards shardAssignment = new AssignedShards(new ArrayList<>());
+        for (int shard = 0; shard < shardCount; shard++) {
+            shardAssignment.getShards().add(new GraphStoreSlave.AssignedShard(null, shard));
+        }
+        us.expectMsg(shardAssignment);
+        return master;
+    }
+
+    @Contract("_, _, _ -> param1")
+    @NotNull
+    private ActorRef makeUsASlave(@NotNull ActorRef master, @NotNull TestProbe us, int shardCount) {
+        // we make ourselves a slave
+        master.tell(new Messages.RegisterMe(), us.ref());
 
         AssignedShards shardAssignment = new AssignedShards(new ArrayList<>());
         for (int shard = 0; shard < shardCount; shard++) {
@@ -71,6 +106,8 @@ public class GraphStoreTest extends JUnitSuite {
                 SubGraph subGraph = extendableSubGraph.toSubGraph();
                 master.tell(subGraph, getRef());
                 expectMsg(new ShardedSubGraph(0, subGraph));
+
+                system.stop(master);
             }
         };
     }
@@ -112,6 +149,8 @@ public class GraphStoreTest extends JUnitSuite {
                 ShardedSubGraph shardedSubGraph2 = new ShardedSubGraph(1, subGraph2);
 
                 expectMsgAllOf(shardedSubGraph1, shardedSubGraph2);
+
+                system.stop(master);
             }
         };
     }
@@ -127,15 +166,84 @@ public class GraphStoreTest extends JUnitSuite {
                 expectMsgClass(GraphStoreSlave.ShardedEdge.class);
 
                 master.tell(new GraphStoreMaster.RequestedEdgeLocation("edge1"), getRef());
-                expectMsg(new GraphStoreMaster.EdgeLocation("edge1", Collections.singletonList(getRef()).toArray(new ActorRef[0])));
+                expectMsg(new GraphStoreMaster.EdgeLocation("edge1", new ActorRef[]{getRef()}));
 
                 GraphStoreMaster.Vertex vertex = new GraphStoreMaster.Vertex("vertex1", null);
                 master.tell(vertex, getRef());
                 expectMsgClass(GraphStoreSlave.ShardedVertex.class);
 
                 master.tell(new GraphStoreMaster.RequestedVertexLocation("vertex1"), getRef());
-                expectMsg(new GraphStoreMaster.VertexLocation("vertex1", Collections.singletonList(getRef()).toArray(new ActorRef[0])));
+                expectMsg(new GraphStoreMaster.VertexLocation("vertex1", new ActorRef[]{getRef()}));
+
+                system.stop(master);
             }
         };
     }
+
+
+    @Test
+    public void getShardAssignmentsTwoCopies() throws InterruptedException {
+        new TestKit(system) {
+            {
+                ActorRef master = createMaster(1, 2, true);
+                makeUsASlave(master, this, 1);
+
+                TestProbe other = new TestProbe(system);
+                makeUsASlave(master, other, 1);
+
+                system.stop(master);
+            }
+        };
+    }
+
+    @Test
+    public void getElementLocationsCopiedShard() throws InterruptedException {
+        new TestKit(system) {
+            {
+                ActorRef master = createMaster(1, 2, true);
+                makeUsASlave(master, this, 1);
+
+
+                GraphStoreMaster.Edge edge = new GraphStoreMaster.Edge("edge1", "nodea", "nodeb", null);
+                master.tell(edge, getRef());
+                expectMsgClass(GraphStoreSlave.ShardedEdge.class);
+
+                master.tell(new GraphStoreMaster.RequestedEdgeLocation("edge1"), getRef());
+                expectMsg(new GraphStoreMaster.EdgeLocation("edge1", new ActorRef[]{getRef()}));
+
+                ActorRef otherSlave = system.actorOf(GraphStoreSlave.props());
+                TestProbe locationQuestioneer = new TestProbe(system);
+                awaitAssert(() -> {
+                    master.tell(new GraphStoreMaster.RequestedEdgeLocation("edge1"), locationQuestioneer.ref());
+                    ArrayList<Object> expectedMessages = new ArrayList<>(2);
+                    expectedMessages.add(new GraphStoreMaster.EdgeLocation("edge1", new ActorRef[]{getRef(), otherSlave}));
+                    expectedMessages.add(new GraphStoreMaster.EdgeLocation("edge1", new ActorRef[]{otherSlave, getRef()}));
+
+                    locationQuestioneer.expectMsgAnyOf(JavaConverters.asScalaBuffer(expectedMessages).toSeq());
+                    return true;
+                });
+
+                expectMsgClass(GraphStoreSlave.ShardRequest.class);
+                assert (getLastSender() == otherSlave);
+
+
+/*
+                GraphStoreMaster.Vertex vertex = new GraphStoreMaster.Vertex("vertex1", null);
+                master.tell(vertex, getRef());
+                expectMsg(new GraphStoreSlave.ShardedVertex(0, vertex));
+
+                ExtendableSubGraph extendableSubGraph = new ExtendableSubGraph();
+                extendableSubGraph.vertices.add(vertex);
+                extendableSubGraph.edges.add(edge);
+                SubGraph subGraph = extendableSubGraph.toSubGraph();
+                master.tell(subGraph, getRef());
+                expectMsg(new ShardedSubGraph(0, subGraph));
+
+ */
+                system.stop(master);
+                system.stop(otherSlave);
+            }
+        };
+    }
+
 }

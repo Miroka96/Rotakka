@@ -1,6 +1,7 @@
 package de.hpi.rotakka.actors.data.graph;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 import akka.actor.Props;
 import de.hpi.rotakka.actors.AbstractLoggingActor;
 import de.hpi.rotakka.actors.data.graph.GraphStoreMaster.Edge;
@@ -193,9 +194,13 @@ public class GraphStoreSlave extends AbstractLoggingActor {
                 .build();
     }
 
+    private ActorSelection getMaster() {
+        return GraphStoreMaster.getSingleton(context());
+    }
+
     @Override
     public void preStart() {
-        GraphStoreMaster.getSingleton(context()).tell(new Messages.RegisterMe(), getSelf());
+        getMaster().tell(new Messages.RegisterMe(), getSelf());
     }
 
     private void add(@NotNull KeyedSubGraph subGraph, @NotNull Vertex vertex) {
@@ -260,7 +265,7 @@ public class GraphStoreSlave extends AbstractLoggingActor {
     }
 
     private void answer(@NotNull ShardRequest request) {
-        GraphStoreMaster.getSingleton(context()).tell(
+        getMaster().tell(
                 new GraphStoreMaster.StartBufferings(
                         request.shardNumber,
                         new ActorRef[]{getSender(), getSelf()},
@@ -292,7 +297,7 @@ public class GraphStoreSlave extends AbstractLoggingActor {
     }
 
     private void enableOwnShard(int shardNumber, ActorRef previousOwner) {
-        GraphStoreMaster.getSingleton(context()).tell(
+        getMaster().tell(
                 new GraphStoreMaster.ShardReady(
                         shardNumber,
                         previousOwner,

@@ -66,12 +66,23 @@ public class GraphStoreMaster extends AbstractLoggingActor {
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
-    public static final class CopiedShard implements Serializable {
+    public static final class StartBufferings implements Serializable {
+        public static final long serialVersionUID = 1;
+        int shardNumber;
+        ActorRef[] affectedShardHolders;
+        ActorRef requestedBy;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static final class ShardReady implements Serializable {
         public static final long serialVersionUID = 1;
         public int shardNumber;
-        public ActorRef from;
-        public ActorRef to;
+        public ActorRef shardHolder;
+        public ActorRef copiedFrom; // optional
     }
+
 
     @Data
     @NoArgsConstructor
@@ -116,14 +127,6 @@ public class GraphStoreMaster extends AbstractLoggingActor {
             int shardNumber;
         }
     */
-    @Data
-    @NoArgsConstructor
-    public static final class StartBufferings implements Serializable {
-        public static final long serialVersionUID = 1;
-        int shardNumber;
-        ActorRef[] affectedShardHolders;
-        ActorRef requestedBy;
-    }
 
     private final ShardMapper shardMapper;
 
@@ -154,7 +157,7 @@ public class GraphStoreMaster extends AbstractLoggingActor {
                 .match(Messages.RegisterMe.class, this::add)
                 //.match(StartBuffering.class, this::startBuffering)
                 .match(StartBufferings.class, this::startBuffering)
-                .match(CopiedShard.class, this::moveShard)
+                .match(ShardReady.class, this::enableShard)
                 .match(RequestedEdgeLocation.class, this::get)
                 .match(RequestedVertexLocation.class, this::get)
                 .build();
@@ -274,10 +277,8 @@ public class GraphStoreMaster extends AbstractLoggingActor {
         }
     }
 
-    private void moveShard(@NotNull CopiedShard shard) {
-        // TODO during shard movement, all messages to the moving copy should be buffered
-        shardMapper.moveShard(shard);
-        shard.from.tell(new GraphStoreSlave.ShardToDelete(shard.shardNumber), getSelf());
+    private void enableShard(@NotNull ShardReady msg) {
+        shardMapper.enableShard(msg.shardNumber, msg.shardHolder, getSelf());
     }
 
     private void get(@NotNull RequestedVertexLocation vertex) {

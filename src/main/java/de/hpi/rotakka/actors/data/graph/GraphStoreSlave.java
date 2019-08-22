@@ -72,6 +72,14 @@ public class GraphStoreSlave extends AbstractLoggingActor {
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
+    public static final class ReceivedShard implements Serializable {
+        public static final long serialVersionUID = 1;
+        int shardNumber;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static final class ShardToDelete implements Serializable {
         public static final long serialVersionUID = 1;
         int shardNumber;
@@ -178,7 +186,9 @@ public class GraphStoreSlave extends AbstractLoggingActor {
                 .match(AssignedShards.class, this::take)
                 .match(AssignedShard.class, this::take)
                 .match(ShardRequest.class, this::answer)
+                .match(StartedBuffering.class, this::react)
                 .match(SentShard.class, this::receive)
+                .match(ReceivedShard.class, this::react)
                 .match(ShardToDelete.class, this::delete)
                 .build();
     }
@@ -250,21 +260,54 @@ public class GraphStoreSlave extends AbstractLoggingActor {
     }
 
     private void answer(@NotNull ShardRequest request) {
-        getSender().tell(
-                new SentShard(
+        GraphStoreMaster.getSingleton(context()).tell(
+                new GraphStoreMaster.StartBufferings(
                         request.shardNumber,
-                        shards.get(request.shardNumber).toSubGraph()),
+                        new ActorRef[]{getSender(), getSelf()},
+                        getSelf()
+                ),
+                getSelf()
+        );
+    }
+
+    private void react(@NotNull StartedBuffering msg) {
+        if (msg.originalRequest.requestedBy == getSelf()) {
+            for (ActorRef otherSlave : msg.originalRequest.affectedShardHolders) {
+                if (otherSlave == getSelf()) {
+                    continue;
+                }
+                otherSlave.tell(
+                        new SentShard(
+                                msg.originalRequest.shardNumber,
+                                shards.get(msg.originalRequest.shardNumber).toSubGraph()),
+                        getSelf()
+                );
+
+            }
+        }
+    }
+
+    private void enableOwnShard(int shardNumber) {
+        enableOwnShard(shardNumber, null);
+    }
+
+    private void enableOwnShard(int shardNumber, ActorRef previousOwner) {
+        GraphStoreMaster.getSingleton(context()).tell(
+                new GraphStoreMaster.ShardReady(
+                        shardNumber,
+                        previousOwner,
+                        getSelf()),
                 getSelf());
     }
 
     private void receive(@NotNull SentShard shard) {
         shards.put(shard.shardNumber, new KeyedSubGraph(shard.subGraph));
-        GraphStoreMaster.getSingleton(context()).tell(
-                new GraphStoreMaster.CopiedShard(
-                        shard.shardNumber,
-                        getSender(),
-                        getSelf()),
-                getSelf());
+        getSender().tell(new ReceivedShard(shard.shardNumber), getSelf());
+        enableOwnShard(shard.shardNumber, getSender());
+    }
+
+    private void react(@NotNull ReceivedShard shard) {
+        enableOwnShard(shard.shardNumber);
     }
 
     private void delete(@NotNull ShardToDelete shard) {

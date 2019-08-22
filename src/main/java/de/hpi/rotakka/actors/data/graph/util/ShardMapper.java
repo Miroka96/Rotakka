@@ -3,7 +3,6 @@ package de.hpi.rotakka.actors.data.graph.util;
 import akka.actor.ActorContext;
 import akka.actor.ActorRef;
 import de.hpi.rotakka.actors.data.graph.GraphStoreBuffer;
-import de.hpi.rotakka.actors.data.graph.GraphStoreMaster.CopiedShard;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
@@ -68,11 +67,8 @@ public class ShardMapper {
         shardToSlaves.get(shard).remove(slave);
     }
 
-
-    public void moveShard(@NotNull CopiedShard shard) {
-        // TODO during shard movement, all messages to the moving copy should be buffered
-        unassign(shard.from, shard.shardNumber);
-        assign(shard.to, shard.shardNumber, true);
+    public void enableShard(int shardNumber, ActorRef slave, ActorRef sender) {
+        tellBuffer(shardNumber, slave, new GraphStoreBuffer.StopBuffering(slave), sender);
     }
 
     public Set<ActorRef> getSlaves() {

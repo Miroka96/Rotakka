@@ -7,6 +7,7 @@ import de.hpi.rotakka.actors.data.graph.GraphStoreSlave.ShardedEdge;
 import de.hpi.rotakka.actors.data.graph.GraphStoreSlave.ShardedSubGraph;
 import de.hpi.rotakka.actors.data.graph.GraphStoreSlave.ShardedVertex;
 import de.hpi.rotakka.actors.data.graph.util.ExtendableSubGraph;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.jetbrains.annotations.NotNull;
@@ -75,6 +76,7 @@ public class GraphStoreBuffer extends AbstractLoggingActor {
 
     @Data
     @NoArgsConstructor
+    @AllArgsConstructor
     public static final class StopBuffering implements Serializable {
         public static final long serialVersionUID = 1;
         ActorRef destination;

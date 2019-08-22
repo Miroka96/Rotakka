@@ -44,7 +44,7 @@ public class GraphStoreBuffer extends AbstractLoggingActor {
     public static final String DEFAULT_NAME = "graphStoreBuffer";
 
     public static Props props(int shardNumber) {
-        return Props.create(GraphStoreBuffer.class, shardNumber);
+        return props(shardNumber, null);
     }
 
     public static Props props(int shardNumber, ActorRef destination) {
@@ -54,10 +54,6 @@ public class GraphStoreBuffer extends AbstractLoggingActor {
     private final int shardNumber;
     private ActorRef destination = null;
     private boolean buffering = false;
-
-    GraphStoreBuffer(int shardNumber) {
-        this(shardNumber, null);
-    }
 
     GraphStoreBuffer(int shardNumber, ActorRef destination) {
         this.shardNumber = shardNumber;
@@ -111,7 +107,9 @@ public class GraphStoreBuffer extends AbstractLoggingActor {
         if (buffering) {
             buffer(shardedVertex);
         } else {
-            forward(shardedVertex);
+            if (destination != null) {
+                forward(shardedVertex);
+            }
         }
     }
 
@@ -119,7 +117,9 @@ public class GraphStoreBuffer extends AbstractLoggingActor {
         if (buffering) {
             buffer(shardedEdge);
         } else {
-            forward(shardedEdge);
+            if (destination != null) {
+                forward(shardedEdge);
+            }
         }
     }
 
@@ -127,7 +127,9 @@ public class GraphStoreBuffer extends AbstractLoggingActor {
         if (buffering) {
             buffer(shardedSubGraph);
         } else {
-            forward(shardedSubGraph);
+            if (destination != null) {
+                forward(shardedSubGraph);
+            }
         }
     }
 

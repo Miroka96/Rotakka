@@ -42,13 +42,22 @@ public class ShardMapper {
         return key.hashCode() % shardCount;
     }
 
+    public void tellBuffer(int shardNumber, ActorRef slave, Object msg, ActorRef sender) {
+        shardToSlaves.get(shardNumber).get(slave).tell(msg, sender);
+    }
+
     public void tellShard(int shardNumber, Object msg, ActorRef sender) {
         shardToSlaves.get(shardNumber).forEach((slave, buffer) -> buffer.tell(msg, sender));
     }
 
 
-    public void assign(ActorRef slave, int shard) {
-        ActorRef buffer = context.actorOf(GraphStoreBuffer.props(shard, slave));
+    public void assign(ActorRef slave, int shard, boolean ready) {
+        ActorRef buffer;
+        if (ready) {
+            buffer = context.actorOf(GraphStoreBuffer.props(shard, slave));
+        } else {
+            buffer = context.actorOf(GraphStoreBuffer.props(shard));
+        }
         slaveToShards.putIfAbsent(slave, new HashSet<>());
         slaveToShards.get(slave).add(shard);
         shardToSlaves.get(shard).put(slave, buffer);
@@ -62,8 +71,8 @@ public class ShardMapper {
 
     public void moveShard(@NotNull CopiedShard shard) {
         // TODO during shard movement, all messages to the moving copy should be buffered
-        unassign(shard.from, shard.id);
-        assign(shard.to, shard.id);
+        unassign(shard.from, shard.shardNumber);
+        assign(shard.to, shard.shardNumber, true);
     }
 
     public Set<ActorRef> getSlaves() {
@@ -96,7 +105,12 @@ public class ShardMapper {
 
     public int assignShard(ActorRef slave) {
         int shard = getUnassignedShard();
-        assign(slave, shard);
+        if (shardToSlaves.get(shard).size() > 0) {
+            // requires copying
+            assign(slave, shard, false);
+        } else {
+            assign(slave, shard, true);
+        }
         return shard;
     }
 }

@@ -68,7 +68,7 @@ public class GraphStoreMaster extends AbstractLoggingActor {
     @AllArgsConstructor
     public static final class CopiedShard implements Serializable {
         public static final long serialVersionUID = 1;
-        public int id;
+        public int shardNumber;
         public ActorRef from;
         public ActorRef to;
     }
@@ -107,6 +107,15 @@ public class GraphStoreMaster extends AbstractLoggingActor {
         ActorRef[] locations;
     }
 
+
+    @Data
+    @NoArgsConstructor
+    public static final class StartBuffering implements Serializable {
+        public static final long serialVersionUID = 1;
+        ActorRef slave;
+        int shardNumber;
+    }
+
     private final ShardMapper shardMapper;
 
     public static Props props() {
@@ -134,6 +143,7 @@ public class GraphStoreMaster extends AbstractLoggingActor {
                 .match(Vertex.class, this::add)
                 .match(Edge.class, this::add)
                 .match(Messages.RegisterMe.class, this::add)
+                .match(StartBuffering.class, this::startBuffering)
                 .match(CopiedShard.class, this::moveShard)
                 .match(RequestedEdgeLocation.class, this::get)
                 .match(RequestedVertexLocation.class, this::get)
@@ -245,11 +255,14 @@ public class GraphStoreMaster extends AbstractLoggingActor {
         slave.tell(new AssignedShards(shardsToMove), getSelf());
     }
 
+    private void startBuffering(@NotNull StartBuffering cmd) {
+        shardMapper.tellBuffer(cmd.shardNumber, cmd.slave, new GraphStoreBuffer.StartBuffering(), getSelf());
+    }
 
     private void moveShard(@NotNull CopiedShard shard) {
         // TODO during shard movement, all messages to the moving copy should be buffered
         shardMapper.moveShard(shard);
-        shard.from.tell(new GraphStoreSlave.ShardToDelete(shard.id), getSelf());
+        shard.from.tell(new GraphStoreSlave.ShardToDelete(shard.shardNumber), getSelf());
     }
 
     private void get(@NotNull RequestedVertexLocation vertex) {

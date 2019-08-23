@@ -117,17 +117,6 @@ public class GraphStoreMaster extends AbstractLoggingActor {
         String key;
         ActorRef[] locations;
     }
-
-    /*
-        @Data
-        @NoArgsConstructor
-        public static final class StartBuffering implements Serializable {
-            public static final long serialVersionUID = 1;
-            ActorRef slave;
-            int shardNumber;
-        }
-    */
-
     private final ShardMapper shardMapper;
 
     public static Props props() {
@@ -155,7 +144,6 @@ public class GraphStoreMaster extends AbstractLoggingActor {
                 .match(Vertex.class, this::add)
                 .match(Edge.class, this::add)
                 .match(Messages.RegisterMe.class, this::add)
-                //.match(StartBuffering.class, this::startBuffering)
                 .match(StartBufferings.class, this::startBuffering)
                 .match(ShardReady.class, this::enableShard)
                 .match(RequestedEdgeLocation.class, this::get)
@@ -213,9 +201,9 @@ public class GraphStoreMaster extends AbstractLoggingActor {
     }
 
     private void add(ActorRef slave) {
+        final ActorRef[] previousSlaves = shardMapper.getSlaves();
         shardMapper.add(slave);
-        final Set<ActorRef> slaves = shardMapper.getSlaves();
-        final int shardsPerSlave = Math.min(shardCount * duplicationLevel / slaves.size(), shardCount);
+        final int shardsPerSlave = Math.min(shardCount * duplicationLevel / (previousSlaves.length + 1), shardCount);
 
         ArrayList<AssignedShard> shardsToMove = new ArrayList<>(shardsPerSlave);
         HashSet<Integer> assignedShards = new HashSet<>(shardsPerSlave);
@@ -229,22 +217,25 @@ public class GraphStoreMaster extends AbstractLoggingActor {
             if (assignedSlaves.length > 1) {
                 previousOwner = assignedSlaves[0];
             }
+            if (previousOwner == slave) {
+                previousOwner = assignedSlaves[1];
+            }
             shardsToMove.add(new AssignedShard(previousOwner, shard));
         }
 
         if (shardsLeft > 0) {
             // start stealing
-            HashMap<ActorRef, Iterator<Integer>> shardIterators = new HashMap<>(slaves.size());
-            for (ActorRef s : slaves) {
+            HashMap<ActorRef, Iterator<Integer>> shardIterators = new HashMap<>(previousSlaves.length);
+            for (ActorRef s : previousSlaves) {
                 shardIterators.put(s, shardMapper.getShards(s));
             }
 
-            for (Iterator<ActorRef> slaveIterator = slaves.iterator();
+            for (Iterator<ActorRef> slaveIterator = Arrays.asList(previousSlaves).iterator();
                  shardsLeft > 0 && shardIterators.size() > 0;
                  shardsLeft--) {
                 while (shardIterators.size() > 0) {
                     if (!slaveIterator.hasNext()) {
-                        slaveIterator = slaves.iterator();
+                        slaveIterator = Arrays.asList(previousSlaves).iterator();
                     }
                     ActorRef previousOwner = slaveIterator.next();
                     Iterator<Integer> shardIterator = shardIterators.get(previousOwner);

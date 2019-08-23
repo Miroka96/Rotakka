@@ -1,8 +1,10 @@
 package de.hpi.rotakka;
 
 
+import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.actor.Props;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 import de.hpi.rotakka.actors.data.graph.GraphStoreMaster;
@@ -18,7 +20,6 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.scalatest.junit.JUnitSuite;
-import scala.collection.JavaConverters;
 
 import java.util.ArrayList;
 
@@ -72,15 +73,20 @@ public class GraphStoreTest extends JUnitSuite {
         return master;
     }
 
-    @Contract("_, _, _ -> param1")
     @NotNull
     private ActorRef makeUsASlave(@NotNull ActorRef master, @NotNull TestProbe us, int shardCount) {
+        return makeUsASlave(master, us, shardCount, null);
+    }
+
+    @Contract("_, _, _, _ -> param1")
+    @NotNull
+    private ActorRef makeUsASlave(@NotNull ActorRef master, @NotNull TestProbe us, int shardCount, ActorRef previousOwner) {
         // we make ourselves a slave
         master.tell(new Messages.RegisterMe(), us.ref());
 
         AssignedShards shardAssignment = new AssignedShards(new ArrayList<>());
         for (int shard = 0; shard < shardCount; shard++) {
-            shardAssignment.getShards().add(new GraphStoreSlave.AssignedShard(null, shard));
+            shardAssignment.getShards().add(new GraphStoreSlave.AssignedShard(previousOwner, shard));
         }
         us.expectMsg(shardAssignment);
         return master;
@@ -180,16 +186,93 @@ public class GraphStoreTest extends JUnitSuite {
         };
     }
 
-
     @Test
-    public void getShardAssignmentsTwoCopies() throws InterruptedException {
+    public void getShardAssignmentsTwoCopies() {
         new TestKit(system) {
             {
-                ActorRef master = createMaster(1, 2, true);
+                ActorRef master = createMaster(1, 2);
                 makeUsASlave(master, this, 1);
 
                 TestProbe other = new TestProbe(system);
-                makeUsASlave(master, other, 1);
+                makeUsASlave(master, other, 1, getRef());
+
+                system.stop(master);
+            }
+        };
+    }
+
+
+    static class ForwardActor extends AbstractActor {
+        final ActorRef destination;
+
+        ForwardActor(ActorRef destination) {
+            this.destination = destination;
+        }
+
+        static Props props(ActorRef destination) {
+            return Props.create(ForwardActor.class, destination);
+        }
+
+        @Override
+        public Receive createReceive() {
+            return receiveBuilder().matchAny(msg -> destination.tell(msg, getSender())).build();
+        }
+    }
+
+    public void getRegisterMeFromSlave() {
+        new TestKit(system) {
+            {
+                TestProbe master = new TestProbe(system); // lies in system namespace
+                ActorRef forwarder = system.actorOf(ForwardActor.props(master.ref()), GraphStoreMaster.PROXY_NAME); // lies in user namespace
+
+                ActorRef otherSlave = system.actorOf(GraphStoreSlave.props());
+                master.expectMsgClass(Messages.RegisterMe.class);
+                system.stop(otherSlave);
+                system.stop(forwarder);
+            }
+        };
+    }
+
+    public void getShardRequestFromSlave() {
+        new TestKit(system) {
+            {
+                TestProbe master = new TestProbe(system); // lies in system namespace
+                ActorRef forwarder = system.actorOf(ForwardActor.props(master.ref()), GraphStoreMaster.PROXY_NAME); // lies in user namespace
+                ActorRef otherSlave = system.actorOf(GraphStoreSlave.props());
+                master.expectMsgClass(Messages.RegisterMe.class);
+
+                TestProbe previousOwner = new TestProbe(system);
+                otherSlave.tell(new GraphStoreSlave.AssignedShard(previousOwner.ref(), 0), forwarder);
+
+                previousOwner.expectMsgClass(GraphStoreSlave.ShardRequest.class);
+                assert (previousOwner.sender() == otherSlave);
+
+                system.stop(otherSlave);
+                system.stop(forwarder);
+            }
+        };
+    }
+
+    @Test
+    public void testsWithUniqueMaster() {
+        // tests must be run sequential to prevent following error:
+        // akka.actor.InvalidActorNameException: actor name [graphStoreMasterProxy] is not unique!
+        // uniqueness is required for real slaves to find the master
+        getRegisterMeFromSlave();
+        getShardRequestFromSlave();
+        getShardRequestWithRealMaster();
+    }
+
+    @Test
+    public void getEmptyAssignedShards() {
+        new TestKit(system) {
+            {
+                ActorRef master = createMaster(1, 1);
+                TestProbe slave1 = new TestProbe(system);
+                TestProbe slave2 = new TestProbe(system);
+
+                makeUsASlave(master, slave1, 1, null);
+                makeUsASlave(master, slave2, 0, slave1.ref());
 
                 system.stop(master);
             }
@@ -197,50 +280,58 @@ public class GraphStoreTest extends JUnitSuite {
     }
 
     @Test
-    public void getElementLocationsCopiedShard() throws InterruptedException {
+    public void getAssignedShardsWithPreviousOwner() {
         new TestKit(system) {
             {
-                ActorRef master = createMaster(1, 2, true);
-                makeUsASlave(master, this, 1);
+                ActorRef master = createMaster(1, 2);
+                TestProbe slave1 = new TestProbe(system, "slave1");
+                TestProbe slave2 = new TestProbe(system, "slave2");
 
+                makeUsASlave(master, slave1, 1, null);
+                makeUsASlave(master, slave2, 1, slave1.ref());
+
+                system.stop(master);
+            }
+        };
+    }
+
+    @Test
+    public void getElementLocationsCopiedShard() {
+        new TestKit(system) {
+            {
+                ActorRef master = createMaster(1, 2);
+                TestProbe slave1 = new TestProbe(system);
+                TestProbe slave2 = new TestProbe(system);
+
+                makeUsASlave(master, slave1, 1, null);
+                makeUsASlave(master, slave2, 1, slave1.ref());
+                master.tell(new GraphStoreMaster.ShardReady(0, slave2.ref(), slave1.ref()), slave2.ref());
 
                 GraphStoreMaster.Edge edge = new GraphStoreMaster.Edge("edge1", "nodea", "nodeb", null);
                 master.tell(edge, getRef());
-                expectMsgClass(GraphStoreSlave.ShardedEdge.class);
+                slave1.expectMsgClass(GraphStoreSlave.ShardedEdge.class);
+                slave2.expectMsgClass(GraphStoreSlave.ShardedEdge.class);
 
-                master.tell(new GraphStoreMaster.RequestedEdgeLocation("edge1"), getRef());
-                expectMsg(new GraphStoreMaster.EdgeLocation("edge1", new ActorRef[]{getRef()}));
+                system.stop(master);
+            }
+        };
+    }
+
+    public void getShardRequestWithRealMaster() {
+        new TestKit(system) {
+            {
+                ActorRef master = createMaster(1, 2);
+                ActorRef forwarder = system.actorOf(ForwardActor.props(master), GraphStoreMaster.PROXY_NAME); // lies in user namespace
+                TestProbe slave1 = new TestProbe(system);
+
+                makeUsASlave(master, slave1, 1, null);
 
                 ActorRef otherSlave = system.actorOf(GraphStoreSlave.props());
-                TestProbe locationQuestioneer = new TestProbe(system);
-                awaitAssert(() -> {
-                    master.tell(new GraphStoreMaster.RequestedEdgeLocation("edge1"), locationQuestioneer.ref());
-                    ArrayList<Object> expectedMessages = new ArrayList<>(2);
-                    expectedMessages.add(new GraphStoreMaster.EdgeLocation("edge1", new ActorRef[]{getRef(), otherSlave}));
-                    expectedMessages.add(new GraphStoreMaster.EdgeLocation("edge1", new ActorRef[]{otherSlave, getRef()}));
+                slave1.expectMsgClass(GraphStoreSlave.ShardRequest.class);
+                assert (slave1.lastSender() == otherSlave);
 
-                    locationQuestioneer.expectMsgAnyOf(JavaConverters.asScalaBuffer(expectedMessages).toSeq());
-                    return true;
-                });
-
-                expectMsgClass(GraphStoreSlave.ShardRequest.class);
-                assert (getLastSender() == otherSlave);
-
-
-/*
-                GraphStoreMaster.Vertex vertex = new GraphStoreMaster.Vertex("vertex1", null);
-                master.tell(vertex, getRef());
-                expectMsg(new GraphStoreSlave.ShardedVertex(0, vertex));
-
-                ExtendableSubGraph extendableSubGraph = new ExtendableSubGraph();
-                extendableSubGraph.vertices.add(vertex);
-                extendableSubGraph.edges.add(edge);
-                SubGraph subGraph = extendableSubGraph.toSubGraph();
-                master.tell(subGraph, getRef());
-                expectMsg(new ShardedSubGraph(0, subGraph));
-
- */
                 system.stop(master);
+                system.stop(forwarder);
                 system.stop(otherSlave);
             }
         };

@@ -107,12 +107,14 @@ public class GraphStoreBuffer extends AbstractLoggingActor {
             this.destination = cmd.destination;
         }
 
-        GraphStoreMaster.SubGraph subGraph = bufferedShard.toSubGraph();
-        if (subGraph != null) {
-            ShardedSubGraph shardedSubGraph = new ShardedSubGraph(shardNumber, subGraph);
-            forward(shardedSubGraph);
+        if (bufferedShard != null) {
+            GraphStoreMaster.SubGraph subGraph = bufferedShard.toSubGraph();
+            if (subGraph != null) {
+                ShardedSubGraph shardedSubGraph = new ShardedSubGraph(shardNumber, subGraph);
+                forward(shardedSubGraph);
+            }
+            bufferedShard = null;
         }
-        bufferedShard = null;
     }
 
     private void handle(@NotNull ShardedVertex shardedVertex) {

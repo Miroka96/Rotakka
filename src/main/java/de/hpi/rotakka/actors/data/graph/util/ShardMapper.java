@@ -71,8 +71,8 @@ public class ShardMapper {
         tellBuffer(shardNumber, slave, new GraphStoreBuffer.StopBuffering(slave), sender);
     }
 
-    public Set<ActorRef> getSlaves() {
-        return slaveToShards.keySet(); //.toArray(new ActorRef[0]);
+    public ActorRef[] getSlaves() {
+        return slaveToShards.keySet().toArray(new ActorRef[0]);
     }
 
     public ActorRef[] getSlaves(int shardNumber) {

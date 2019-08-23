@@ -36,13 +36,16 @@ Buffer1 -> Slave1: StartedBuffering
 Master -> Buffer2: StartBuffering
 Buffer2 -> Slave2: StartedBuffering
 Slave2 -> Slave1: SentShard
+Slave1 ->Slave2: ReceivedShard
+Slave1 -> Master: ShardReady
+Slave2 -> Master: ShardReady
 end
-Slave1 -> Master: CopiedShard
 Master ->Buffer1: StopBuffering(new target)
 Buffer1 -> Slave1: SubGraph
+alt
 Master ->Buffer2: StopBuffering(new target)
 Buffer2 -> Slave2: SubGraph
-opt
+else
 Master -> Slave2: ShardToDelete
 end
  */

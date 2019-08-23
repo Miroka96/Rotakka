@@ -275,6 +275,11 @@ public class GraphStoreMaster extends AbstractLoggingActor {
 
     private void enableShard(@NotNull ShardReady msg) {
         shardMapper.enableShard(msg.shardNumber, msg.shardHolder, getSelf());
+
+        if (msg.copiedFrom != null && shardMapper.getSlaves(msg.shardNumber).length > duplicationLevel) {
+            msg.copiedFrom.tell(new GraphStoreSlave.ShardToDelete(msg.shardNumber), getSelf());
+            shardMapper.unassign(msg.copiedFrom, msg.shardNumber);
+        }
     }
 
     private void get(@NotNull RequestedVertexLocation vertex) {

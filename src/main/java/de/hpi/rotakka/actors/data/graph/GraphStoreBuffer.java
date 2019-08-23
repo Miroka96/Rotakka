@@ -61,7 +61,7 @@ public class GraphStoreBuffer extends AbstractLoggingActor {
     }
 
     private final int shardNumber;
-    private ActorRef destination = null;
+    private ActorRef destination;
     private boolean buffering = false;
 
     GraphStoreBuffer(int shardNumber, ActorRef destination) {

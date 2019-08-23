@@ -63,8 +63,10 @@ public class ShardMapper {
     }
 
     public void unassign(ActorRef slave, int shard) {
+        ActorRef buffer = shardToSlaves.get(shard).get(slave);
         slaveToShards.get(slave).remove(shard);
         shardToSlaves.get(shard).remove(slave);
+        context.stop(buffer);
     }
 
     public void enableShard(int shardNumber, ActorRef slave, ActorRef sender) {

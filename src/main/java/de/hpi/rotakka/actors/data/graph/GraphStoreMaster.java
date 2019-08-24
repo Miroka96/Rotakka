@@ -10,6 +10,7 @@ import de.hpi.rotakka.actors.data.graph.GraphStoreSlave.ShardedEdge;
 import de.hpi.rotakka.actors.data.graph.GraphStoreSlave.ShardedVertex;
 import de.hpi.rotakka.actors.data.graph.util.ExtendableSubGraph;
 import de.hpi.rotakka.actors.data.graph.util.ShardMapper;
+import de.hpi.rotakka.actors.data.graph.util.TweetConverter;
 import de.hpi.rotakka.actors.utils.Messages;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -40,7 +41,7 @@ public class GraphStoreMaster extends AbstractLoggingActor {
     public static final class Vertex implements Serializable {
         public static final long serialVersionUID = 1L;
         String key;
-        HashMap<String, Object> properties;
+        Map<String, Object> properties;
     }
 
     @Data
@@ -51,7 +52,7 @@ public class GraphStoreMaster extends AbstractLoggingActor {
         String key;
         String from;
         String to;
-        HashMap<String, Object> properties;
+        Map<String, Object> properties;
     }
 
     @Data
@@ -117,6 +118,34 @@ public class GraphStoreMaster extends AbstractLoggingActor {
         String key;
         ActorRef[] locations;
     }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static final class TweetData {
+        public static final long serialVersionUID = 1L;
+
+        public String tweet_id;
+        public String item_id;
+        public String permalink;
+        public String conversation_id;
+        public String screen_name;
+        public String name;
+        public String user_id;
+        public String mentions;
+
+        public Boolean has_parent_tweet;
+        public Boolean is_reply_to;
+
+        public String retweet_id;
+        public String retweeter;
+
+        public List<String> type;
+        public List<String> referenced_users;
+
+        public String tweet_text;
+    }
+
     private final ShardMapper shardMapper;
 
     public static Props props() {
@@ -143,6 +172,7 @@ public class GraphStoreMaster extends AbstractLoggingActor {
                 .match(SubGraph.class, this::add)
                 .match(Vertex.class, this::add)
                 .match(Edge.class, this::add)
+                .match(TweetData.class, this::add)
                 .match(Messages.RegisterMe.class, this::add)
                 .match(StartBufferings.class, this::startBuffering)
                 .match(ShardReady.class, this::enableShard)
@@ -151,6 +181,9 @@ public class GraphStoreMaster extends AbstractLoggingActor {
                 .build();
     }
 
+    private void add(TweetData tweet) {
+        add(TweetConverter.toVertex(tweet));
+    }
 
     private void add(Vertex vertex) {
         ShardedVertex shardedVertex = new ShardedVertex(shardMapper.keyToShardNumber(vertex.key), vertex);

@@ -1,4 +1,4 @@
-package de.hpi.rotakka;
+package de.hpi.rotakka.actors.data.graph;
 
 
 import akka.actor.AbstractActor;
@@ -7,9 +7,7 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
-import de.hpi.rotakka.actors.data.graph.GraphStoreMaster;
 import de.hpi.rotakka.actors.data.graph.GraphStoreMaster.SubGraph;
-import de.hpi.rotakka.actors.data.graph.GraphStoreSlave;
 import de.hpi.rotakka.actors.data.graph.GraphStoreSlave.AssignedShards;
 import de.hpi.rotakka.actors.data.graph.GraphStoreSlave.ShardedSubGraph;
 import de.hpi.rotakka.actors.data.graph.util.ExtendableSubGraph;

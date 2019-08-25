@@ -11,9 +11,7 @@ import de.hpi.rotakka.actors.utils.Messages;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -160,19 +158,11 @@ public class GraphStoreSlave extends AbstractLoggingActor {
             }
         }
 
-        @Nullable
-        @Contract(" -> new")
+        @NotNull
         SubGraph toSubGraph() {
-            Vertex[] vs = null;
-            Edge[] es = null;
-            if (vertices.size() > 0) {
-                vs = vertices.values().toArray(new Vertex[0]);
-            }
-            if (edges.size() > 0) {
-                es = edges.values().toArray(new Edge[0]);
-            }
-            if (vs == null && es == null) return null;
-            return new SubGraph(vs, es);
+            Vertex[] newVertices = vertices.values().toArray(new Vertex[0]);
+            Edge[] newEdges = edges.values().toArray(new Edge[0]);
+            return new SubGraph(newVertices, newEdges);
         }
     }
 

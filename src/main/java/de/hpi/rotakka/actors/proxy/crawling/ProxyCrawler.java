@@ -13,6 +13,8 @@ import de.hpi.rotakka.actors.utils.Messages;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.jetbrains.annotations.NotNull;
+import org.openqa.selenium.WebDriverException;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -54,7 +56,7 @@ public class ProxyCrawler extends AbstractActor {
                 .build();
     }
 
-    private void extract(ExtractProxies task) {
+    private void extract(@NotNull ExtractProxies task) {
         extract(task.crawlerName);
     }
 
@@ -63,7 +65,7 @@ public class ProxyCrawler extends AbstractActor {
      * This method will determine which crawler should be started by performing a string check and then
      * calling the extract() of the specific crawler
      */
-    private void extract(String crawlerName) {
+    private void extract(@NotNull String crawlerName) {
         Crawler crawler;
         log.info("Tasked to Crawl "+crawlerName);
         if(crawlerName.equals("CrawlerFreeProxyCZ")) {
@@ -73,10 +75,18 @@ public class ProxyCrawler extends AbstractActor {
             crawler = new CrawlerUsProxy();
         }
         else {
-            log.error("FATAL: RotakkarProxy Crawler Class not found");
+            log.error("FATAL: Rotakka Proxy Crawler Class not found");
             return;
         }
-        List<ProxyWrapper> proxies = crawler.extract();
+        List<ProxyWrapper> proxies = null;
+        try {
+            proxies = crawler.extract();
+        } catch (WebDriverException e) {
+            log.error("Could not extract proxies from " + crawlerName + ": " + e.getMessage());
+            e.printStackTrace();
+            return;
+        }
+
         log.info("Extracted "+proxies.size()+" proxies");
 
         // Single Proxy Sending
@@ -85,7 +95,7 @@ public class ProxyCrawler extends AbstractActor {
                 ProxyCheckingScheduler.getSingleton(context()).tell(proxy, getSelf());
             }
             else {
-                log.info("ERROR: PROXY WAS NULL");
+                log.error("Proxy was null");
             }
         }
         ProxyCrawlingScheduler.getSingleton(context()).tell(new ProxyCrawlingScheduler.FinishedScraping(), getSelf());

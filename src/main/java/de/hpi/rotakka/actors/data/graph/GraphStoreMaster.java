@@ -273,6 +273,10 @@ public class GraphStoreMaster extends AbstractLoggingActor {
                     ActorRef previousOwner = slaveIterator.next();
                     Iterator<Integer> shardIterator = shardIterators.get(previousOwner);
 
+                    if (shardIterator == null) {
+                        continue;
+                    }
+
                     if (!shardIterator.hasNext()) {
                         shardIterators.remove(previousOwner);
                         continue;

@@ -5,6 +5,7 @@ import de.hpi.rotakka.actors.utils.Crawler;
 import de.hpi.rotakka.actors.utils.WebDriverFactory;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebDriverException;
 import org.openqa.selenium.WebElement;
 
 import java.util.ArrayList;
@@ -27,7 +28,7 @@ public class CrawlerUsProxy extends Crawler {
     }
 
     @Override
-    public List<ProxyWrapper> extract() {
+    public List<ProxyWrapper> extract() throws WebDriverException {
         List<ProxyWrapper> proxies = new ArrayList<>();
         for(String url : BASE_URLS) {
             webDriver.get(url);

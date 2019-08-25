@@ -9,12 +9,14 @@ import de.hpi.rotakka.actors.utils.WebDriverFactory;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.jetbrains.annotations.NotNull;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebDriverException;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -51,34 +53,38 @@ public class TwitterCrawler extends AbstractLoggingActor {
     private WebDriver webDriver;
     private List<Tweet> extractedTweets = new ArrayList<>();
 
-    private void handleCrawlURL(CrawlURL message) {
-        crawl(message.getUrl(), message.getProxy());
+    private void handleCrawlURL(@NotNull CrawlURL message) {
+        try {
+            crawl(message.getUrl(), message.getProxy());
+        } catch (WebDriverException e) {
+            log.error("Website " + message.getUrl() + " could not be crawled: " + e.getMessage());
+            return;
+        }
+
         getSender().tell(new TwitterCrawlingScheduler.FinishedWork(), getSelf());
     }
 
     private void changeProxy(CheckedProxy proxy) {
-        if(webDriver != null) {
+        if (webDriver != null) {
             webDriver.close();
         }
-        if(proxy != null) {
+        if (proxy != null) {
             webDriver = WebDriverFactory.createWebDriver(log, this.context(), proxy);
-        }
-        else {
+        } else {
             log.info("INFO: Starting WebDriver without a Proxy");
             webDriver = WebDriverFactory.createWebDriver(log, this.context());
         }
     }
 
-    private void crawl(String url, CheckedProxy proxy) {
+    private void crawl(String url, CheckedProxy proxy) throws WebDriverException {
         log.info("Started working on:" + url);
 
         // ToDo: Fix non-working proxies
-        if(proxyChangeCounter > 3) {
+        if (proxyChangeCounter > 3) {
             log.info("Changing Proxy");
             changeProxy(proxy);
             proxyChangeCounter = 0;
-        }
-        else {
+        } else {
             proxyChangeCounter++;
         }
 
@@ -113,12 +119,12 @@ public class TwitterCrawler extends AbstractLoggingActor {
             newUsers.addAll(tweet.getReferenced_users());
             extractedTweets.add(tweet);
         }
-        log.info("Scraped "+extractedTweets.size()+" tweets");
-        log.info("Found "+newUsers.size()+" new users");
+        log.info("Scraped " + extractedTweets.size() + " tweets");
+        log.info("Found " + newUsers.size() + " new users");
         // ToDo: Send the scraped tweets to the graph store
         // ToDo: Send the mentions to the TwitterCrawlingScheduler
-        if(newUsers.size() > 0) {
-            log.info("Found "+newUsers.size()+" new users");
+        if (newUsers.size() > 0) {
+            log.info("Found " + newUsers.size() + " new users");
             getSender().tell(new TwitterCrawlingScheduler.NewReference(newUsers), getSelf());
         }
     }
@@ -133,7 +139,11 @@ public class TwitterCrawler extends AbstractLoggingActor {
     public void postStop() throws Exception {
         super.postStop();
         if (webDriver != null) {
-            webDriver.close();
+            try {
+                webDriver.close();
+            } catch (WebDriverException e) {
+                log.error("Web Driver could not be closed properly: " + e.getMessage());
+            }
         }
     }
 

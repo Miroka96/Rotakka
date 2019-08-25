@@ -3,6 +3,7 @@ package de.hpi.rotakka.actors.utils;
 import akka.actor.ActorContext;
 import akka.event.LoggingAdapter;
 import de.hpi.rotakka.actors.proxy.CheckedProxy;
+import org.openqa.selenium.SessionNotCreatedException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
@@ -15,8 +16,7 @@ public class WebDriverFactory {
 
         if (webDriver != null) {
             return webDriver;
-        }
-        else {
+        } else {
             logger.error("Selenium could not be started, shutting down system");
             context.system().terminate();
             return null;
@@ -29,8 +29,7 @@ public class WebDriverFactory {
 
         if (webDriver != null) {
             return webDriver;
-        }
-        else {
+        } else {
             logger.error("Selenium could not be started, shutting down system");
             context.system().terminate();
             return null;
@@ -65,7 +64,7 @@ public class WebDriverFactory {
         ChromeOptions options = new ChromeOptions();
         options.setBinary(envChromeBinaryPath);
 
-        if(proxy != null) {
+        if (proxy != null) {
             String proxyAddress = proxy.getIp() + ":" + proxy.getPort();
             options.addArguments("--proxy-server=http://" + proxyAddress);
         }
@@ -79,6 +78,12 @@ public class WebDriverFactory {
             options.addArguments("window-size=1200x600");
         }
 
-        return new ChromeDriver(options);
+        try {
+            return new ChromeDriver(options);
+        } catch (SessionNotCreatedException e) {
+            logger.error("Selenium Session could not be created, terminating soon: " + e.getMessage());
+            e.printStackTrace();
+            return null;
+        }
     }
 }

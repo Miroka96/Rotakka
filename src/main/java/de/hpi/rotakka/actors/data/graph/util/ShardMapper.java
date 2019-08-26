@@ -38,7 +38,11 @@ public class ShardMapper {
 
     @Contract(pure = true)
     public int keyToShardNumber(@NotNull final String key) {
-        return key.hashCode() % shardCount;
+        int mod = key.hashCode() % shardCount;
+        if (mod < 0) {
+            mod += shardCount;
+        }
+        return mod;
     }
 
     public void tellBuffer(int shardNumber, ActorRef slave, Object msg, ActorRef sender) {

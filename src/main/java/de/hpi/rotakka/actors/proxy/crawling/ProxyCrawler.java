@@ -83,7 +83,6 @@ public class ProxyCrawler extends AbstractActor {
             proxies = crawler.extract();
         } catch (WebDriverException e) {
             log.error("Could not extract proxies from " + crawlerName + ": " + e.getMessage());
-            e.printStackTrace();
             return;
         }
 

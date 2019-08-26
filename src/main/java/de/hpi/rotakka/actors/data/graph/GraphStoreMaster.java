@@ -152,8 +152,8 @@ public class GraphStoreMaster extends AbstractLoggingActor {
     }
 
     private void add(@NotNull Vertex vertex) {
-        log.debug("Received Vertex " + vertex.key);
         ShardedVertex shardedVertex = new ShardedVertex(shardMapper.keyToShardNumber(vertex.key), vertex);
+        log.debug("Received Vertex " + vertex.key + " and assigned it to shard " + shardedVertex.shardNumber);
         shardMapper.tellShard(shardedVertex.shardNumber, shardedVertex, getSelf());
     }
 

@@ -6,7 +6,6 @@ import de.hpi.rotakka.actors.AbstractLoggingActor;
 import de.hpi.rotakka.actors.data.graph.GraphStoreSlave.ShardedEdge;
 import de.hpi.rotakka.actors.data.graph.GraphStoreSlave.ShardedSubGraph;
 import de.hpi.rotakka.actors.data.graph.GraphStoreSlave.ShardedVertex;
-import de.hpi.rotakka.actors.data.graph.util.ExtendableSubGraph;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -99,7 +98,7 @@ public class GraphStoreBuffer extends AbstractLoggingActor {
     private void startBuffering(StartBuffering cmd) {
         this.buffering = true;
         if (bufferedShard == null) {
-            bufferedShard = new ExtendableSubGraph();
+            bufferedShard = new GraphStoreMaster.ExtendableSubGraph();
         }
         cmd.notify.tell(new GraphStoreSlave.StartedBuffering(cmd.originalRequest), getSelf());
     }
@@ -150,7 +149,7 @@ public class GraphStoreBuffer extends AbstractLoggingActor {
         }
     }
 
-    private ExtendableSubGraph bufferedShard = null;
+    private GraphStoreMaster.ExtendableSubGraph bufferedShard = null;
 
     private void buffer(@NotNull ShardedVertex shardedVertex) {
         bufferedShard.vertices.add(shardedVertex.vertex);

@@ -197,11 +197,11 @@ public class GraphStoreMaster extends AbstractLoggingActor {
         shardMapper.tellShard(shardedEdge.shardNumber, shardedEdge, getSelf());
     }
 
-    private static class ExtendableSubGraph {
+    public static class ExtendableSubGraph {
         ArrayList<GraphStoreMaster.Vertex> vertices = new ArrayList<>();
         ArrayList<GraphStoreMaster.Edge> edges = new ArrayList<>();
 
-        GraphStoreMaster.SubGraph toSubGraph() {
+        public GraphStoreMaster.SubGraph toSubGraph() {
             GraphStoreMaster.Vertex[] newVertices = vertices.toArray(new GraphStoreMaster.Vertex[0]);
             GraphStoreMaster.Edge[] newEdges = edges.toArray(new GraphStoreMaster.Edge[0]);
             return new GraphStoreMaster.SubGraph(newVertices, newEdges);

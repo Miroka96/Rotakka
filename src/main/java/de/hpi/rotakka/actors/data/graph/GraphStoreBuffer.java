@@ -95,7 +95,9 @@ public class GraphStoreBuffer extends AbstractLoggingActor {
                 .build();
     }
 
-    private void startBuffering(StartBuffering cmd) {
+    private void startBuffering(@NotNull StartBuffering cmd) {
+        log.debug("Received start-buffering command for shard " + cmd.originalRequest.shardNumber +
+                " and notifying " + cmd.notify.toString());
         this.buffering = true;
         if (bufferedShard == null) {
             bufferedShard = new GraphStoreMaster.ExtendableSubGraph();
@@ -104,11 +106,14 @@ public class GraphStoreBuffer extends AbstractLoggingActor {
     }
 
     private void stopBuffering(@NotNull StopBuffering cmd) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Received stop-buffering command");
         this.buffering = false;
         if (cmd.destination != null) {
             this.destination = cmd.destination;
         }
-
+        sb.append(" with destination ");
+        sb.append(this.destination);
         if (bufferedShard != null) {
             GraphStoreMaster.SubGraph subGraph = bufferedShard.toSubGraph();
             if (subGraph != null) {
@@ -116,7 +121,9 @@ public class GraphStoreBuffer extends AbstractLoggingActor {
                 forward(shardedSubGraph);
             }
             bufferedShard = null;
+            sb.append(" and flushing buffer to destination");
         }
+        log.debug(sb.toString());
     }
 
     private void handle(@NotNull ShardedVertex shardedVertex) {
@@ -125,6 +132,8 @@ public class GraphStoreBuffer extends AbstractLoggingActor {
         } else {
             if (destination != null) {
                 forward(shardedVertex);
+            } else {
+                log.debug("Dropping received vertex - no destination configured");
             }
         }
     }
@@ -135,6 +144,8 @@ public class GraphStoreBuffer extends AbstractLoggingActor {
         } else {
             if (destination != null) {
                 forward(shardedEdge);
+            } else {
+                log.debug("Dropping received edge - no destination configured");
             }
         }
     }
@@ -145,6 +156,8 @@ public class GraphStoreBuffer extends AbstractLoggingActor {
         } else {
             if (destination != null) {
                 forward(shardedSubGraph);
+            } else {
+                log.debug("Dropping received subgraph - no destination configured");
             }
         }
     }
@@ -152,27 +165,33 @@ public class GraphStoreBuffer extends AbstractLoggingActor {
     private GraphStoreMaster.ExtendableSubGraph bufferedShard = null;
 
     private void buffer(@NotNull ShardedVertex shardedVertex) {
+        log.debug("Buffering received vertex");
         bufferedShard.vertices.add(shardedVertex.vertex);
     }
 
     private void buffer(@NotNull ShardedEdge shardedEdge) {
+        log.debug("Buffering received edge");
         bufferedShard.edges.add(shardedEdge.edge);
     }
 
     private void buffer(@NotNull ShardedSubGraph shardedSubGraph) {
+        log.debug("Buffering received subgraph");
         bufferedShard.vertices.addAll(Arrays.asList(shardedSubGraph.subGraph.vertices));
         bufferedShard.edges.addAll(Arrays.asList(shardedSubGraph.subGraph.edges));
     }
 
     private void forward(ShardedVertex shardedVertex) {
+        log.debug("Forwarding received vertex");
         destination.tell(shardedVertex, getSelf());
     }
 
     private void forward(ShardedEdge shardedEdge) {
+        log.debug("Forwarding received edge");
         destination.tell(shardedEdge, getSelf());
     }
 
     private void forward(ShardedSubGraph shardedSubGraph) {
+        log.debug("Forwarding received subgraph");
         destination.tell(shardedSubGraph, getSelf());
     }
 

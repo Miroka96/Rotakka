@@ -7,7 +7,7 @@ import org.scalatest.junit.JUnitSuite;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-public class TweetConverterTest extends JUnitSuite {
+public class TweetConversionTest extends JUnitSuite {
 
     public Tweet createTweet() {
         Tweet tweet = new Tweet();

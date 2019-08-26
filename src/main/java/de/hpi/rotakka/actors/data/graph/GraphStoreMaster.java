@@ -8,7 +8,6 @@ import de.hpi.rotakka.actors.data.graph.GraphStoreSlave.AssignedShard;
 import de.hpi.rotakka.actors.data.graph.GraphStoreSlave.AssignedShards;
 import de.hpi.rotakka.actors.data.graph.GraphStoreSlave.ShardedEdge;
 import de.hpi.rotakka.actors.data.graph.GraphStoreSlave.ShardedVertex;
-import de.hpi.rotakka.actors.data.graph.util.ExtendableSubGraph;
 import de.hpi.rotakka.actors.data.graph.util.ShardMapper;
 import de.hpi.rotakka.actors.data.graph.util.TweetConverter;
 import de.hpi.rotakka.actors.utils.Messages;
@@ -182,20 +181,36 @@ public class GraphStoreMaster extends AbstractLoggingActor {
     }
 
     private void add(TweetData tweet) {
+        log.debug("Received tweet, converting it to vertex");
         add(TweetConverter.toVertex(tweet));
     }
 
-    private void add(Vertex vertex) {
+    private void add(@NotNull Vertex vertex) {
+        log.debug("Received Vertex " + vertex.key);
         ShardedVertex shardedVertex = new ShardedVertex(shardMapper.keyToShardNumber(vertex.key), vertex);
         shardMapper.tellShard(shardedVertex.shardNumber, shardedVertex, getSelf());
     }
 
-    private void add(Edge edge) {
+    private void add(@NotNull Edge edge) {
+        log.debug("Received Edge " + edge.key);
         ShardedEdge shardedEdge = new ShardedEdge(shardMapper.keyToShardNumber(edge.key), edge);
         shardMapper.tellShard(shardedEdge.shardNumber, shardedEdge, getSelf());
     }
 
+    private static class ExtendableSubGraph {
+        ArrayList<GraphStoreMaster.Vertex> vertices = new ArrayList<>();
+        ArrayList<GraphStoreMaster.Edge> edges = new ArrayList<>();
+
+        GraphStoreMaster.SubGraph toSubGraph() {
+            GraphStoreMaster.Vertex[] newVertices = vertices.toArray(new GraphStoreMaster.Vertex[0]);
+            GraphStoreMaster.Edge[] newEdges = edges.toArray(new GraphStoreMaster.Edge[0]);
+            return new GraphStoreMaster.SubGraph(newVertices, newEdges);
+        }
+    }
+
     private void add(@NotNull SubGraph subGraph) {
+        log.debug("Received Subgraph");
+        // subgraph entities belong to different shards
         HashMap<Integer, ExtendableSubGraph> shards = new HashMap<>();
         if (subGraph.vertices != null) {
             for (Vertex vertex : subGraph.vertices) {
@@ -220,20 +235,24 @@ public class GraphStoreMaster extends AbstractLoggingActor {
             }
         }
 
+        StringBuilder sb = new StringBuilder();
         for (Map.Entry<Integer, ExtendableSubGraph> entry : shards.entrySet()) {
+            sb.append(", ");
+            sb.append(entry.getKey());
             SubGraph subGraphByShard = entry.getValue().toSubGraph();
-            if (subGraphByShard != null) {
-                GraphStoreSlave.ShardedSubGraph shardedSubGraph = new GraphStoreSlave.ShardedSubGraph(entry.getKey(), subGraphByShard);
-                shardMapper.tellShard(entry.getKey(), shardedSubGraph, getSelf());
-            }
+            GraphStoreSlave.ShardedSubGraph shardedSubGraph = new GraphStoreSlave.ShardedSubGraph(entry.getKey(), subGraphByShard);
+            shardMapper.tellShard(entry.getKey(), shardedSubGraph, getSelf());
         }
+        sb.delete(0, 2);
+        log.debug("Split received subgraph into sharded subgraphs for shards: " + sb.toString());
     }
 
     private void add(Messages.RegisterMe slave) {
         add(getSender());
     }
 
-    private void add(ActorRef slave) {
+    private void add(@NotNull ActorRef slave) {
+        log.info("Adding " + slave.toString() + " as graph store slave");
         final ActorRef[] previousSlaves = shardMapper.getSlaves();
         shardMapper.add(slave);
         final int shardsPerSlave = Math.min(shardCount * duplicationLevel / (previousSlaves.length + 1), shardCount);
@@ -297,42 +316,67 @@ public class GraphStoreMaster extends AbstractLoggingActor {
                 }
             }
         }
-
+        for (AssignedShard shard : shardsToMove) {
+            StringBuilder sb = new StringBuilder();
+            sb.append("Assigning shard ");
+            sb.append(shard.shardNumber);
+            sb.append(" to slave ");
+            sb.append(slave.toString());
+            if (shard.previousOwner != null) {
+                sb.append("; shard must be copied from ");
+                sb.append(shard.previousOwner.toString());
+            }
+            log.debug(sb.toString());
+        }
         slave.tell(new AssignedShards(shardsToMove), getSelf());
     }
 
     private void startBuffering(@NotNull StartBufferings cmds) {
+        StringBuilder sb = new StringBuilder();
         for (ActorRef slave : cmds.affectedShardHolders) {
+            sb.append(", ");
+            sb.append(slave.toString());
             GraphStoreBuffer.StartBuffering start = new GraphStoreBuffer.StartBuffering();
             start.notify = slave;
             start.originalRequest = cmds;
             shardMapper.tellBuffer(cmds.shardNumber, slave, start, getSelf());
         }
+        sb.delete(0, 2);
+        log.debug("Received StartBuffering command for shard " +
+                cmds.shardNumber + ", requested by " + cmds.requestedBy.toString() +
+                " and affecting the following shard holders: " + sb.toString());
     }
 
     private void enableShard(@NotNull ShardReady msg) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Enabling shard ");
+        sb.append(msg.shardNumber);
+        sb.append(" on slave ");
+        sb.append(msg.shardHolder);
         shardMapper.enableShard(msg.shardNumber, msg.shardHolder, getSelf());
 
+        if (msg.copiedFrom != null) {
+            sb.append(" copied from ");
+            sb.append(msg.copiedFrom);
+        }
         if (msg.copiedFrom != null && shardMapper.getSlaves(msg.shardNumber).length > duplicationLevel) {
             msg.copiedFrom.tell(new GraphStoreSlave.ShardToDelete(msg.shardNumber), getSelf());
             shardMapper.unassign(msg.copiedFrom, msg.shardNumber);
+            sb.append(" and telling previous shard holder to delete shard");
         }
+        log.debug(sb.toString());
     }
 
     private void get(@NotNull RequestedVertexLocation vertex) {
-        getSender().tell(
-                new VertexLocation(
-                        vertex.key,
-                        shardMapper.getSlaves(vertex.key)),
-                getSelf());
+        VertexLocation response = new VertexLocation(vertex.key, shardMapper.getSlaves(vertex.key));
+        log.debug("Got location request for vertex " + vertex.key + " predicted on " + Arrays.toString(response.locations));
+        getSender().tell(response, getSelf());
     }
 
     private void get(@NotNull RequestedEdgeLocation edge) {
-        getSender().tell(
-                new EdgeLocation(
-                        edge.key,
-                        shardMapper.getSlaves(edge.key)),
-                getSelf());
+        EdgeLocation response = new EdgeLocation(edge.key, shardMapper.getSlaves(edge.key));
+        log.debug("Got location request for edge " + edge.key + " predicted on " + Arrays.toString(response.locations));
+        getSender().tell(response, getSelf());
     }
 
 }

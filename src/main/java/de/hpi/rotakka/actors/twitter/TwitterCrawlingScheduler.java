@@ -140,8 +140,8 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
             }
         }
         if(message.key().equals(proxyListKey)) {
-            log.info("Trying to dezerialize Proxies");
-            // Dezerialize the Proxies and add them to the list
+            log.info("Trying to deserialize Proxies");
+            // Deserialize the Proxies and add them to the list
             Replicator.GetSuccess<ORSet<String>> getSuccessObject = message;
             Set<String> serializedProxySet = getSuccessObject.dataValue().getElements();
             if(serializedProxySet.size() > 0) {
@@ -149,14 +149,14 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
                 for (String proxyString : serializedProxySet) {
                     storedProxies.add(new CheckedProxy(proxyString));
                 }
-                log.info("Sucessfully added proxies");
+                log.info("Successfully added proxies");
             }
             else {
-                log.info("Replicator Set was size 0, did not add anything");
+                log.info("Replicator Set was empty, did not add anything");
             }
         }
         else {
-            log.error("Could not handle Successful replicaor Messag");
+            log.error("Could not handle replicator success message");
         }
     }
 

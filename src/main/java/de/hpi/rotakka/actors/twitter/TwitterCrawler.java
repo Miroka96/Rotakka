@@ -2,6 +2,7 @@ package de.hpi.rotakka.actors.twitter;
 
 import akka.actor.Props;
 import de.hpi.rotakka.actors.AbstractLoggingActor;
+import de.hpi.rotakka.actors.data.graph.GraphStoreMaster;
 import de.hpi.rotakka.actors.proxy.CheckedProxy;
 import de.hpi.rotakka.actors.utils.Messages;
 import de.hpi.rotakka.actors.utils.Tweet;
@@ -117,7 +118,8 @@ public class TwitterCrawler extends AbstractLoggingActor {
             tweetDiv.children().select("div[class=content]");
             Tweet tweet = new Tweet(tweetDiv);
             newUsers.addAll(tweet.getReferenced_users());
-            extractedTweets.add(tweet);
+            GraphStoreMaster.getSingleton(getContext()).tell(tweet.toVertex(), getSelf());
+            //extractedTweets.add(tweet);
         }
         log.info("Scraped " + extractedTweets.size() + " tweets");
         log.info("Found " + newUsers.size() + " new users");

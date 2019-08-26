@@ -1,6 +1,5 @@
 package de.hpi.rotakka.actors.data.graph;
 
-import de.hpi.rotakka.actors.data.graph.util.TweetConverter;
 import de.hpi.rotakka.actors.utils.Tweet;
 import org.junit.Test;
 import org.scalatest.junit.JUnitSuite;
@@ -10,27 +9,28 @@ import java.util.HashMap;
 
 public class TweetConverterTest extends JUnitSuite {
 
-    public GraphStoreMaster.Tweet createTweet() {
-        GraphStoreMaster.TweetData tweet = new GraphStoreMaster.TweetData();
-        tweet.tweet_id = "tweet_id";
-        tweet.item_id = "item_id";
-        tweet.permalink = "permalink";
-        tweet.conversation_id = "conversation_id";
-        tweet.screen_name = "screen_name";
-        tweet.name = "name";
-        tweet.user_id = "user_id";
-        tweet.mentions = "mentions";
-        tweet.has_parent_tweet = true;
-        tweet.is_reply_to = true;
-        tweet.retweet_id = "retweet_id";
-        tweet.retweeter = "retweeter";
-        tweet.type = new ArrayList<>();
-        tweet.type.add("a");
-        tweet.type.add("b");
-        tweet.referenced_users = new ArrayList<>();
-        tweet.referenced_users.add("alex");
-        tweet.referenced_users.add("bob");
-        tweet.tweet_text = "tweet_text";
+    public Tweet createTweet() {
+        Tweet tweet = new Tweet();
+
+        tweet.setTweet_id("tweet_id");
+        tweet.setItem_id("item_id");
+        tweet.setPermalink("permalink");
+        tweet.setConversation_id("conversation_id");
+        tweet.setScreen_name("screen_name");
+        tweet.setName("name");
+        tweet.setUser_id("user_id");
+        tweet.setMentions("mentions");
+        tweet.setHas_parent_tweet(true);
+        tweet.setIs_reply_to(true);
+        tweet.setRetweet_id("retweet_id");
+        tweet.setRetweeter("retweeter");
+        tweet.setType(new ArrayList<>());
+        tweet.getType().add("a");
+        tweet.getType().add("b");
+        tweet.setReferenced_users(new ArrayList<>());
+        tweet.getReferenced_users().add("alex");
+        tweet.getReferenced_users().add("bob");
+        tweet.setTweet_text("tweet_text");
         return tweet;
     }
 
@@ -70,7 +70,7 @@ public class TweetConverterTest extends JUnitSuite {
 
     @Test
     public void tweetToVertex() {
-        GraphStoreMaster.Vertex generatedVertex = TweetConverter.toVertex(tweet);
+        GraphStoreMaster.Vertex generatedVertex = tweet.toVertex();
         assert (generatedVertex.equals(vertex));
     }
 
@@ -82,15 +82,15 @@ public class TweetConverterTest extends JUnitSuite {
 
     @Test
     public void tweetToVertexToTweet() {
-        GraphStoreMaster.Vertex generatedVertex = TweetConverter.toVertex(tweet);
-        GraphStoreMaster.TweetData generatedTweet = TweetConverter.toTweet(generatedVertex);
+        GraphStoreMaster.Vertex generatedVertex = tweet.toVertex();
+        Tweet generatedTweet = Tweet.createTweet(generatedVertex);
         assert (generatedTweet.equals(tweet));
     }
 
     @Test
     public void vertexToTweetToVertex() {
-        GraphStoreMaster.TweetData generatedTweet = TweetConverter.toTweet(vertex);
-        GraphStoreMaster.Vertex generatedVertex = TweetConverter.toVertex(generatedTweet);
+        Tweet generatedTweet = Tweet.createTweet(vertex);
+        GraphStoreMaster.Vertex generatedVertex = generatedTweet.toVertex();
         assert (generatedVertex.equals(vertex));
     }
 

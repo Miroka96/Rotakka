@@ -1,9 +1,8 @@
 package de.hpi.rotakka.actors.utils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 import org.jsoup.nodes.Element;
 
 import java.util.ArrayList;
@@ -13,9 +12,8 @@ import java.util.Map;
 
 import static de.hpi.rotakka.actors.data.graph.GraphStoreMaster.Vertex;
 
-@Setter
 @NoArgsConstructor
-@Getter
+@Data
 public class Tweet {
     private String tweet_id;
     private String item_id;

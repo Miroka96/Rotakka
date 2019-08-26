@@ -1,6 +1,7 @@
 package de.hpi.rotakka.actors.data.graph;
 
 import de.hpi.rotakka.actors.data.graph.util.TweetConverter;
+import de.hpi.rotakka.actors.utils.Tweet;
 import org.junit.Test;
 import org.scalatest.junit.JUnitSuite;
 
@@ -9,7 +10,7 @@ import java.util.HashMap;
 
 public class TweetConverterTest extends JUnitSuite {
 
-    public GraphStoreMaster.TweetData createTweet() {
+    public GraphStoreMaster.Tweet createTweet() {
         GraphStoreMaster.TweetData tweet = new GraphStoreMaster.TweetData();
         tweet.tweet_id = "tweet_id";
         tweet.item_id = "item_id";
@@ -65,7 +66,7 @@ public class TweetConverterTest extends JUnitSuite {
     }
 
     private GraphStoreMaster.Vertex vertex = createVertex();
-    private GraphStoreMaster.TweetData tweet = createTweet();
+    private Tweet tweet = createTweet();
 
     @Test
     public void tweetToVertex() {
@@ -75,7 +76,7 @@ public class TweetConverterTest extends JUnitSuite {
 
     @Test
     public void vertexToTweet() {
-        GraphStoreMaster.TweetData generatedTweet = TweetConverter.toTweet(vertex);
+        Tweet generatedTweet = Tweet.createTweet(vertex);
         assert (generatedTweet.equals(tweet));
     }
 

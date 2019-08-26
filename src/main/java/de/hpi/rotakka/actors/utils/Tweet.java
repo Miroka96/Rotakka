@@ -1,12 +1,20 @@
 package de.hpi.rotakka.actors.utils;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.jsoup.nodes.Element;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
+import static de.hpi.rotakka.actors.data.graph.GraphStoreMaster.Vertex;
+
+@Setter
+@NoArgsConstructor
 @Getter
 public class Tweet {
     private String tweet_id;
@@ -62,5 +70,20 @@ public class Tweet {
         }
 
         tweet_text = tweetElement.children().select("div[class=content]").get(0).children().select("div[class=js-tweet-text-container]").text();
+    }
+
+    public static Tweet createTweet(Vertex vertex) {
+        ObjectMapper mapper = new ObjectMapper();
+        return mapper.convertValue(vertex.getProperties(), Tweet.class);
+    }
+
+    public Vertex toVertex() {
+        Vertex v = new Vertex();
+        v.setKey("tweet_" + this.tweet_id);
+
+        ObjectMapper mapper = new ObjectMapper();
+        Map<String, Object> properties = mapper.convertValue(this, Map.class);
+        v.setProperties(properties);
+        return v;
     }
 }

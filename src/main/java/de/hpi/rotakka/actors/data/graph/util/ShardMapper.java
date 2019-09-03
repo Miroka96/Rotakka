@@ -4,6 +4,7 @@ import akka.actor.ActorContext;
 import akka.actor.ActorRef;
 import akka.japi.Pair;
 import de.hpi.rotakka.actors.data.graph.GraphStoreBuffer;
+import de.hpi.rotakka.actors.data.graph.GraphStoreMaster;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
@@ -52,7 +53,7 @@ public class ShardMapper {
         return mod;
     }
 
-    public void tellBuffer(int shardNumber, ActorRef slave, Object msg, ActorRef sender) {
+    private void tellBuffer(int shardNumber, @NotNull ActorRef slave, @NotNull Object msg, ActorRef sender) {
         HashMap<ActorRef, ActorRef> bufferMap = shardToSlaves.get(shardNumber);
         assert bufferMap != null : "SlaveToBuffer Map not yet created for shard " + shardNumber;
         ActorRef buffer = bufferMap.get(slave);
@@ -62,7 +63,7 @@ public class ShardMapper {
 
     public void tellShard(int shardNumber, Object msg, ActorRef sender) {
         if (shardToSlaves.get(shardNumber).size() == 0) {
-            shardMessageBuffers.get(shardNumber).add(Pair.create(msg, sender));//TODO
+            shardMessageBuffers.get(shardNumber).add(Pair.create(msg, sender));
             return;
         }
 
@@ -73,27 +74,69 @@ public class ShardMapper {
     }
 
 
-    public void assign(ActorRef slave, int shard, boolean ready) {
+    public void assign(@NotNull ActorRef slave, int shard, boolean ready) {
+        String slaveName = slave.toString();
+        int slashIndex = slaveName.lastIndexOf('/');
+        int hashIndex = slaveName.lastIndexOf('#');
+        slaveName = slaveName.substring(slashIndex + 1, hashIndex);
+        String bufferName = GraphStoreBuffer.DEFAULT_NAME + "_" + shard + "_" + slaveName;
         ActorRef buffer;
         if (ready) {
-            buffer = context.actorOf(GraphStoreBuffer.props(shard, slave));
+            buffer = context.actorOf(GraphStoreBuffer.props(shard, slave), bufferName);
         } else {
-            buffer = context.actorOf(GraphStoreBuffer.props(shard));
+            buffer = context.actorOf(GraphStoreBuffer.props(shard), bufferName);
         }
         slaveToShards.putIfAbsent(slave, new HashSet<>());
         slaveToShards.get(slave).add(shard);
         shardToSlaves.get(shard).put(slave, buffer);
     }
 
-    public void unassign(ActorRef slave, int shard) {
+    public void unassign(@NotNull ActorRef slave, int shard) {
         ActorRef buffer = shardToSlaves.get(shard).get(slave);
+        assert buffer != null : "buffer for shard " + shard + " and slave " + slave + " does not/no longer exist";
         slaveToShards.get(slave).remove(shard);
         shardToSlaves.get(shard).remove(slave);
         context.stop(buffer);
     }
 
-    public void enableShard(int shardNumber, ActorRef slave, ActorRef sender) {
-        tellBuffer(shardNumber, slave, new GraphStoreBuffer.StopBuffering(slave), sender);
+    Map<Integer, Map<ActorRef, Integer>> bufferLocks = new HashMap<>();
+
+    public void enableBuffer(int shardNumber, @NotNull ActorRef slave, @NotNull GraphStoreMaster.StartBufferings cmds, @NotNull ActorRef sender) {
+        // increase a counter for every buffer
+        Map<ActorRef, Integer> slaves = bufferLocks.getOrDefault(shardNumber, new HashMap<>());
+        int locks = slaves.getOrDefault(slave, 0);
+        slaves.put(slave, locks + 1);
+        bufferLocks.put(shardNumber, slaves);
+
+        GraphStoreBuffer.StartBuffering start = new GraphStoreBuffer.StartBuffering();
+        start.notify = slave;
+        start.originalRequest = cmds;
+        tellBuffer(shardNumber, slave, start, sender);
+    }
+
+    // returns true if shard is safe to be deleted
+    public boolean disableBuffer(int shardNumber, @NotNull ActorRef slave, @NotNull ActorRef sender) {
+        // decrease a counter for every buffer
+        Map<ActorRef, Integer> slaves = bufferLocks.get(shardNumber);
+        assert slaves != null : "buffer for shard " + shardNumber + " and slave " + slave.toString() + " was not enabled previously";
+        int locks = slaves.get(slave);
+        assert locks > 0 : "buffer for shard " + shardNumber + " and slave " + slave.toString() + " was not locked previously";
+
+        locks--;
+        if (locks > 0) {
+            slaves.put(slave, locks);
+            bufferLocks.put(shardNumber, slaves);
+        } else {
+            slaves.remove(slave);
+        }
+
+        if (locks == 0) {
+            // buffer no longer needed
+            tellBuffer(shardNumber, slave, new GraphStoreBuffer.StopBuffering(slave), sender);
+            return true;
+        } else {
+            return false;
+        }
     }
 
     public ActorRef[] getSlaves() {

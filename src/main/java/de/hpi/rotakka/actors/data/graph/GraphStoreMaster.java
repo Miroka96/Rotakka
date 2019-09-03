@@ -277,6 +277,7 @@ public class GraphStoreMaster extends AbstractLoggingActor {
                     if (!assignedShards.contains(shard)) {
                         shardsToMove.add(new AssignedShard(previousOwner, shard));
                         assignedShards.add(shard);
+                        shardMapper.assign(slave, shard, false);
                         break;
                     }
                 }
@@ -302,10 +303,7 @@ public class GraphStoreMaster extends AbstractLoggingActor {
         for (ActorRef slave : cmds.affectedShardHolders) {
             sb.append(", ");
             sb.append(slave.toString());
-            GraphStoreBuffer.StartBuffering start = new GraphStoreBuffer.StartBuffering();
-            start.notify = slave;
-            start.originalRequest = cmds;
-            shardMapper.tellBuffer(cmds.shardNumber, slave, start, getSelf());
+            shardMapper.enableBuffer(cmds.shardNumber, slave, cmds, getSelf());
         }
         sb.delete(0, 2);
         log.debug("Received StartBuffering command for shard " +
@@ -319,16 +317,20 @@ public class GraphStoreMaster extends AbstractLoggingActor {
         sb.append(msg.shardNumber);
         sb.append(" on slave ");
         sb.append(msg.shardHolder);
-        shardMapper.enableShard(msg.shardNumber, msg.shardHolder, getSelf());
+        boolean safeToDelete = shardMapper.disableBuffer(msg.shardNumber, msg.shardHolder, getSelf());
 
         if (msg.copiedFrom != null) {
             sb.append(" copied from ");
             sb.append(msg.copiedFrom);
         }
         if (msg.copiedFrom != null && shardMapper.getSlaves(msg.shardNumber).length > duplicationLevel) {
-            msg.copiedFrom.tell(new GraphStoreSlave.ShardToDelete(msg.shardNumber), getSelf());
-            shardMapper.unassign(msg.copiedFrom, msg.shardNumber);
-            sb.append(" and telling previous shard holder to delete shard");
+            if (safeToDelete) {
+                sb.append(" and telling previous shard holder to delete shard");
+                msg.copiedFrom.tell(new GraphStoreSlave.ShardToDelete(msg.shardNumber), getSelf());
+                shardMapper.unassign(msg.copiedFrom, msg.shardNumber);
+            } else {
+                sb.append(" but shard is still needed for copy operation");
+            }
         }
         log.debug(sb.toString());
     }

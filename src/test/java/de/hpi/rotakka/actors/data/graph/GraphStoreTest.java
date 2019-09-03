@@ -372,7 +372,7 @@ public class GraphStoreTest extends JUnitSuite {
                 master.tell(v2, us.ref());
                 master.tell(e2, us.ref());
 
-                us.expectNoMessage(FiniteDuration.apply(1, TimeUnit.SECONDS));
+                us.expectNoMessage(FiniteDuration.apply(2, TimeUnit.SECONDS));
 
                 ActorRef slave3 = system.actorOf(GraphStoreSlave.props(), "Slave3");
                 ActorRef slave4 = system.actorOf(GraphStoreSlave.props(), "Slave4");
@@ -382,10 +382,9 @@ public class GraphStoreTest extends JUnitSuite {
                 master.tell(v4, us.ref());
                 master.tell(e4, us.ref());
 
-                us.expectNoMessage(FiniteDuration.apply(1, TimeUnit.SECONDS));
+                us.expectNoMessage(FiniteDuration.apply(10, TimeUnit.SECONDS));
 
                 system.stop(master);
-                //system.stop(forwarder);
                 system.stop(slave1);
                 system.stop(slave2);
                 system.stop(slave3);

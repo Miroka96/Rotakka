@@ -72,8 +72,8 @@ public class GraphStoreBuffer extends AbstractLoggingActor {
     @NoArgsConstructor
     public static final class StartBuffering implements Serializable {
         public static final long serialVersionUID = 1;
-        ActorRef notify;
-        GraphStoreMaster.StartBufferings originalRequest;
+        public ActorRef notify;
+        public GraphStoreMaster.StartBufferings originalRequest;
     }
 
     @Data
@@ -127,30 +127,37 @@ public class GraphStoreBuffer extends AbstractLoggingActor {
     }
 
     private void handle(@NotNull ShardedVertex shardedVertex) {
+        assert shardedVertex.vertex != null;
+        assert shardedVertex.vertex.key != null;
+
         if (buffering) {
             buffer(shardedVertex);
         } else {
             if (destination != null) {
                 forward(shardedVertex);
             } else {
-                log.debug("Dropping received vertex - no destination configured");
+                log.debug("Dropping received vertex " + shardedVertex.vertex.key + " - no destination configured");
             }
         }
     }
 
     private void handle(@NotNull ShardedEdge shardedEdge) {
+        assert shardedEdge.edge != null;
+        assert shardedEdge.edge.key != null;
+
         if (buffering) {
             buffer(shardedEdge);
         } else {
             if (destination != null) {
                 forward(shardedEdge);
             } else {
-                log.debug("Dropping received edge - no destination configured");
+                log.debug("Dropping received edge " + shardedEdge.edge.key + " - no destination configured");
             }
         }
     }
 
     private void handle(@NotNull ShardedSubGraph shardedSubGraph) {
+        assert shardedSubGraph.subGraph != null;
         if (buffering) {
             buffer(shardedSubGraph);
         } else {
@@ -165,12 +172,12 @@ public class GraphStoreBuffer extends AbstractLoggingActor {
     private GraphStoreMaster.ExtendableSubGraph bufferedShard = null;
 
     private void buffer(@NotNull ShardedVertex shardedVertex) {
-        log.debug("Buffering received vertex");
+        log.debug("Buffering received vertex " + shardedVertex.vertex.key);
         bufferedShard.vertices.add(shardedVertex.vertex);
     }
 
     private void buffer(@NotNull ShardedEdge shardedEdge) {
-        log.debug("Buffering received edge");
+        log.debug("Buffering received edge " + shardedEdge.edge.key);
         bufferedShard.edges.add(shardedEdge.edge);
     }
 
@@ -180,17 +187,17 @@ public class GraphStoreBuffer extends AbstractLoggingActor {
         bufferedShard.edges.addAll(Arrays.asList(shardedSubGraph.subGraph.edges));
     }
 
-    private void forward(ShardedVertex shardedVertex) {
-        log.debug("Forwarding received vertex");
+    private void forward(@NotNull ShardedVertex shardedVertex) {
+        log.debug("Forwarding received vertex " + shardedVertex.vertex.key);
         destination.tell(shardedVertex, getSelf());
     }
 
-    private void forward(ShardedEdge shardedEdge) {
-        log.debug("Forwarding received edge");
+    private void forward(@NotNull ShardedEdge shardedEdge) {
+        log.debug("Forwarding received edge " + shardedEdge.edge.key);
         destination.tell(shardedEdge, getSelf());
     }
 
-    private void forward(ShardedSubGraph shardedSubGraph) {
+    private void forward(@NotNull ShardedSubGraph shardedSubGraph) {
         log.debug("Forwarding received subgraph");
         destination.tell(shardedSubGraph, getSelf());
     }

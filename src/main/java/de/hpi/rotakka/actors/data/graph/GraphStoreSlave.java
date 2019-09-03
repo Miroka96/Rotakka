@@ -309,6 +309,7 @@ public class GraphStoreSlave extends AbstractLoggingActor {
                 }
                 sb.append(otherSlave);
 
+                assert shards.get(msg.originalRequest.shardNumber) != null : "shard " + msg.originalRequest.shardNumber + " does not/no longer exist at " + getSelf().toString();
                 otherSlave.tell(
                         new SentShard(
                                 msg.originalRequest.shardNumber,
@@ -331,8 +332,8 @@ public class GraphStoreSlave extends AbstractLoggingActor {
         getMaster().tell(
                 new GraphStoreMaster.ShardReady(
                         shardNumber,
-                        previousOwner,
-                        getSelf()),
+                        getSelf(),
+                        previousOwner),
                 getSelf());
 
     }

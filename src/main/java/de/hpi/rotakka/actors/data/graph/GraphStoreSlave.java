@@ -22,7 +22,17 @@ public class GraphStoreSlave extends AbstractLoggingActor {
     public static final String DEFAULT_NAME = "graphStoreSlave";
 
     public static Props props() {
-        return Props.create(GraphStoreSlave.class);
+        return props(null);
+    }
+
+    ActorRef notify;
+
+    public static Props props(ActorRef notify) {
+        return Props.create(GraphStoreSlave.class, notify);
+    }
+
+    public GraphStoreSlave(ActorRef notify) {
+        this.notify = notify;
     }
 
     @Data
@@ -324,6 +334,7 @@ public class GraphStoreSlave extends AbstractLoggingActor {
                         previousOwner,
                         getSelf()),
                 getSelf());
+
     }
 
     private void receive(@NotNull SentShard shard) {

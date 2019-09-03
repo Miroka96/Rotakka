@@ -1,5 +1,6 @@
 package de.hpi.rotakka.actors.proxy.crawling.websites;
 
+import akka.event.LoggingAdapter;
 import de.hpi.rotakka.actors.proxy.ProxyWrapper;
 import de.hpi.rotakka.actors.utils.Crawler;
 import de.hpi.rotakka.actors.utils.WebDriverFactory;
@@ -22,8 +23,8 @@ public class CrawlerUsProxy extends Crawler {
                                                                 "https://www.sslproxies.org/");
     private WebDriver webDriver;
 
-    public CrawlerUsProxy() {
-        super();
+    public CrawlerUsProxy(LoggingAdapter loggingAdapter) {
+        super(loggingAdapter);
         webDriver = WebDriverFactory.createWebDriver(null, null);
     }
 

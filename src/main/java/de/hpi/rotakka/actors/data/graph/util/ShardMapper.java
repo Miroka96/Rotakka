@@ -2,6 +2,7 @@ package de.hpi.rotakka.actors.data.graph.util;
 
 import akka.actor.ActorContext;
 import akka.actor.ActorRef;
+import akka.japi.Pair;
 import de.hpi.rotakka.actors.data.graph.GraphStoreBuffer;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -17,6 +18,7 @@ public class ShardMapper {
 
     // shard -> slave -> buffer
     private ArrayList<HashMap<ActorRef, ActorRef>> shardToSlaves;
+    private ArrayList<Queue<Pair<Object, ActorRef>>> shardMessageBuffers; // as long as no buffer is registered
     private HashMap<ActorRef, HashSet<Integer>> slaveToShards = new HashMap<>(5);
 
     public ShardMapper(int shardCount, int duplicationLevel, ActorContext context) {
@@ -27,6 +29,11 @@ public class ShardMapper {
         shardToSlaves = new ArrayList<>(shardCount);
         for (int shard = 0; shard < shardCount; shard++) {
             shardToSlaves.add(new HashMap<>(duplicationLevel));
+        }
+
+        shardMessageBuffers = new ArrayList<>(shardCount);
+        for (int shard = 0; shard < shardCount; shard++) {
+            shardMessageBuffers.add(new LinkedList<>());
         }
 
         for (int copy = 0; copy < duplicationLevel; copy++) {
@@ -46,10 +53,22 @@ public class ShardMapper {
     }
 
     public void tellBuffer(int shardNumber, ActorRef slave, Object msg, ActorRef sender) {
-        shardToSlaves.get(shardNumber).get(slave).tell(msg, sender);
+        HashMap<ActorRef, ActorRef> bufferMap = shardToSlaves.get(shardNumber);
+        assert bufferMap != null : "SlaveToBuffer Map not yet created for shard " + shardNumber;
+        ActorRef buffer = bufferMap.get(slave);
+        assert buffer != null : "No buffer available for shard " + shardNumber + " and slave " + slave.toString();
+        buffer.tell(msg, sender);
     }
 
     public void tellShard(int shardNumber, Object msg, ActorRef sender) {
+        if (shardToSlaves.get(shardNumber).size() == 0) {
+            shardMessageBuffers.get(shardNumber).add(Pair.create(msg, sender));//TODO
+            return;
+        }
+
+        for (Pair<Object, ActorRef> p : shardMessageBuffers.get(shardNumber)) {
+            shardToSlaves.get(shardNumber).forEach((slave, buffer) -> buffer.tell(p.first(), p.second()));
+        }
         shardToSlaves.get(shardNumber).forEach((slave, buffer) -> buffer.tell(msg, sender));
     }
 

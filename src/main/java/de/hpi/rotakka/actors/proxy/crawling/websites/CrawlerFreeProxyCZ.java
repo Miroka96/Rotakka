@@ -1,5 +1,6 @@
 package de.hpi.rotakka.actors.proxy.crawling.websites;
 
+import akka.event.LoggingAdapter;
 import de.hpi.rotakka.actors.proxy.ProxyWrapper;
 import de.hpi.rotakka.actors.utils.Crawler;
 import org.apache.commons.codec.binary.Base64;
@@ -14,6 +15,10 @@ public class CrawlerFreeProxyCZ extends Crawler {
     String baseURL = "http://free-proxy.cz/en/proxylist/main/";
     // They do have CAPTCHA if one goes over page 6, be aware of that
     // Proof of concept class
+
+    public CrawlerFreeProxyCZ(LoggingAdapter loggingAdapter) {
+        super(loggingAdapter);
+    }
 
     @Override
     public List<ProxyWrapper> extract() {

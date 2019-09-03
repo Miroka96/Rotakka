@@ -1,5 +1,6 @@
 package de.hpi.rotakka.actors.proxy.crawling.websites;
 
+import akka.event.LoggingAdapter;
 import de.hpi.rotakka.actors.proxy.ProxyWrapper;
 import de.hpi.rotakka.actors.utils.Crawler;
 import org.jsoup.nodes.Document;
@@ -12,6 +13,10 @@ import java.util.List;
 // Not working because of extremly aggressive blocking
 public class CrawlerFreeProxyLists extends Crawler {
     String baseURL = "http://www.freeproxylists.net/?page=";
+
+    public CrawlerFreeProxyLists(LoggingAdapter loggingAdapter) {
+        super(loggingAdapter);
+    }
 
     @Override
     public List<ProxyWrapper> extract() {

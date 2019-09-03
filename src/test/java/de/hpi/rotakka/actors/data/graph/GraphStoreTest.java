@@ -18,8 +18,10 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.scalatest.junit.JUnitSuite;
+import scala.concurrent.duration.FiniteDuration;
 
 import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
 
 public class GraphStoreTest extends JUnitSuite {
     public static final long serialVersionUID = 1;
@@ -256,9 +258,10 @@ public class GraphStoreTest extends JUnitSuite {
         // tests must be run sequential to prevent following error:
         // akka.actor.InvalidActorNameException: actor name [graphStoreMasterProxy] is not unique!
         // uniqueness is required for real slaves to find the master
-        getRegisterMeFromSlave();
-        getShardRequestFromSlave();
-        getShardRequestWithRealMaster();
+        //getRegisterMeFromSlave();
+        //getShardRequestFromSlave();
+        //getShardRequestWithRealMaster();
+        fullStoreWithInteractionAndLaterSlaves();
     }
 
     @Test
@@ -335,4 +338,59 @@ public class GraphStoreTest extends JUnitSuite {
         };
     }
 
+
+    public void fullStoreWithInteractionAndLaterSlaves() {
+        new TestKit(system) {
+            {
+                ActorRef master = createMaster(2, 2, true);
+                //ActorRef forwarder = system.actorOf(ForwardActor.props(master), GraphStoreMaster.PROXY_NAME); // lies in user namespace
+                ActorRef slave1 = system.actorOf(GraphStoreSlave.props(), "Slave1");
+                ActorRef slave2 = system.actorOf(GraphStoreSlave.props(), "Slave2");
+
+                TestProbe us = new TestProbe(system);
+
+                GraphStoreMaster.Vertex v1 = new GraphStoreMaster.Vertex();
+                v1.key = "v1";
+                GraphStoreMaster.Vertex v2 = new GraphStoreMaster.Vertex();
+                v2.key = "v2";
+                GraphStoreMaster.Vertex v3 = new GraphStoreMaster.Vertex();
+                v3.key = "v3";
+                GraphStoreMaster.Vertex v4 = new GraphStoreMaster.Vertex();
+                v4.key = "v4";
+
+                GraphStoreMaster.Edge e1 = new GraphStoreMaster.Edge();
+                e1.key = "e1";
+                GraphStoreMaster.Edge e2 = new GraphStoreMaster.Edge();
+                e2.key = "e2";
+                GraphStoreMaster.Edge e3 = new GraphStoreMaster.Edge();
+                e3.key = "e3";
+                GraphStoreMaster.Edge e4 = new GraphStoreMaster.Edge();
+                e4.key = "e4";
+
+                master.tell(v1, us.ref());
+                master.tell(e1, us.ref());
+                master.tell(v2, us.ref());
+                master.tell(e2, us.ref());
+
+                us.expectNoMessage(FiniteDuration.apply(1, TimeUnit.SECONDS));
+
+                ActorRef slave3 = system.actorOf(GraphStoreSlave.props(), "Slave3");
+                ActorRef slave4 = system.actorOf(GraphStoreSlave.props(), "Slave4");
+
+                master.tell(v3, us.ref());
+                master.tell(e3, us.ref());
+                master.tell(v4, us.ref());
+                master.tell(e4, us.ref());
+
+                us.expectNoMessage(FiniteDuration.apply(1, TimeUnit.SECONDS));
+
+                system.stop(master);
+                //system.stop(forwarder);
+                system.stop(slave1);
+                system.stop(slave2);
+                system.stop(slave3);
+                system.stop(slave4);
+            }
+        };
+    }
 }

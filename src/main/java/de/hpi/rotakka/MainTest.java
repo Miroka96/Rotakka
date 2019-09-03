@@ -10,7 +10,7 @@ public class MainTest {
 
     public static void main(String[] args) {
 
-        CrawlerUsProxy crawler  = new CrawlerUsProxy();
+        CrawlerUsProxy crawler = new CrawlerUsProxy(null);
         List<ProxyWrapper> proxy_list = crawler.extract();
         System.out.println(proxy_list.size());
 

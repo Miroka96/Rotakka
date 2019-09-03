@@ -158,8 +158,8 @@ public class GraphStoreMaster extends AbstractLoggingActor {
     }
 
     private void add(@NotNull Edge edge) {
-        log.debug("Received Edge " + edge.key);
         ShardedEdge shardedEdge = new ShardedEdge(shardMapper.keyToShardNumber(edge.key), edge);
+        log.debug("Received Edge " + edge.key + " and assigned it to shard " + shardedEdge.shardNumber);
         shardMapper.tellShard(shardedEdge.shardNumber, shardedEdge, getSelf());
     }
 

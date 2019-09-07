@@ -34,7 +34,8 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
 
     private ArrayList<ActorRef> awaitingWork = new ArrayList<>();
     private ArrayList<ActorRef> workers = new ArrayList<>();
-    private LinkedList<String> workQueue = new LinkedList<>();
+    private LinkedList<String> userQueue = new LinkedList<>();
+    private LinkedList<String> workPackets = new LinkedList<>();
     private ArrayList<String> scrapedUsers = new ArrayList<>();
     private ArrayList<CheckedProxy> storedProxies = new ArrayList<>();
 
@@ -87,29 +88,29 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
             e.printStackTrace();
         }
 
+        userQueue.addAll(entryPoints);
+        String firstUser = userQueue.pop();
+        workPackets.addAll(createCrawlingLinks(firstUser));
+        scrapedUsers.add(firstUser);
 
-        for(String twitterUser : entryPoints) {
-            workQueue.addAll(createCrawlingLinks(twitterUser));
-            scrapedUsers.add(twitterUser);
-        }
         storedProxies.add(null);
-        log.info("Generated "+workQueue.size()+" work packets");
+        log.info("Generated "+workPackets.size()+" work packets");
     }
 
     private void handleRegisterMe(Messages.RegisterMe message) {
-        // ToDO: Error handling if set is empty
         workers.add(getSender());
-        getSender().tell(new TwitterCrawler.CrawlURL(workQueue.get(0), storedProxies.get(new Random().nextInt(storedProxies.size()))), this.getSelf());
-        workQueue.remove(0);
+        populateWorkPacketsQueueIfNecessary();
+        String workPacket = workPackets.pop();
+        getSender().tell(new TwitterCrawler.CrawlURL(workPacket, storedProxies.get(new Random().nextInt(storedProxies.size()))), this.getSelf());
     }
 
     // Add retweeted users & mentions to the data replicator to be crawled
     private void handleNewReference(NewReference message) {
         for(String user : message.getReferences()) {
             if(!scrapedUsers.contains(user)) {
-                workQueue.addAll(createCrawlingLinks(user));
+                userQueue.add(user);
                 scrapedUsers.add(user);
-                log.info("Current Work Queue Size: "+workQueue.size());
+                log.info("Current Work Queue Size: "+ userQueue.size());
 
                 Replicator.Update<ORSet<String>> update = new Replicator.Update<>(
                         newUsersKey,
@@ -125,15 +126,10 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
         // final Replicator.ReadConsistency readNewUsers = new Replicator.ReadMajority(Duration.ofSeconds(5));
         // replicator.tell(new Replicator.Get<>(newUsersKey, readNewUsers), getSelf());
         // awaitingWork.add(getSender());
-        if(workQueue.size() > 0) {
-            final Replicator.ReadConsistency readMajority = new Replicator.ReadMajority(Duration.ofSeconds(5));
-            replicator.tell(new Replicator.Get<>(proxyListKey, readMajority), getSelf());
-            getSender().tell(new TwitterCrawler.CrawlURL(workQueue.pop(), storedProxies.get(new Random().nextInt(storedProxies.size()))), getSelf());
-        }
-        else {
-            log.error("NO MORE WORK AVAILABLE; SHUTTING DOWN SYSTEM");
-            context().system().terminate();
-        }
+        populateWorkPacketsQueueIfNecessary();
+        final Replicator.ReadConsistency readMajority = new Replicator.ReadMajority(Duration.ofSeconds(5));
+        replicator.tell(new Replicator.Get<>(proxyListKey, readMajority), getSelf());
+        getSender().tell(new TwitterCrawler.CrawlURL(workPackets.pop(), storedProxies.get(new Random().nextInt(storedProxies.size()))), getSelf());
     }
 
     private void handleReplicatorMessages(Replicator.GetSuccess message) {
@@ -204,6 +200,19 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
         }
 
         return crawlingLinks;
+    }
+
+    private void populateWorkPacketsQueueIfNecessary() {
+        if(workPackets.isEmpty()) {
+            if (!userQueue.isEmpty()) {
+                String user = userQueue.pop();
+                workPackets.addAll(createCrawlingLinks(user));
+                scrapedUsers.add(user);
+            } else {
+                log.error("NO MORE WORK AVAILABLE; SHUTTING DOWN SYSTEM");
+                context().system().terminate();
+            }
+        }
     }
 
 

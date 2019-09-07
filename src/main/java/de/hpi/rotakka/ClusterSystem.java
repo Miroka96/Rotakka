@@ -162,6 +162,9 @@ abstract class ClusterSystem {
         system.actorOf(ProxyChecker.props(), ProxyChecker.DEFAULT_NAME+"-1");
         system.actorOf(ProxyCrawler.props(), ProxyCrawler.DEFAULT_NAME);
         system.actorOf(TwitterCrawler.props(), TwitterCrawler.DEFAULT_NAME+"-0");
+        system.actorOf(TwitterCrawler.props(), TwitterCrawler.DEFAULT_NAME+"-1");
+        system.actorOf(TwitterCrawler.props(), TwitterCrawler.DEFAULT_NAME+"-2");
+        system.actorOf(TwitterCrawler.props(), TwitterCrawler.DEFAULT_NAME+"-3");
         // system.actorOf(TwitterCrawler.props(), TwitterCrawler.DEFAULT_NAME+"-1");
         // add cli parameters to specify the worker counts
     }

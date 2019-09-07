@@ -15,9 +15,12 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebDriverException;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -27,9 +30,9 @@ import java.util.List;
 public class TwitterCrawler extends AbstractLoggingActor {
 
     public final static String DEFAULT_NAME = "twitterCrawler";
-    private final static int PAGE_LOAD_WAIT = 2000;
-    private final static int PAGE_AJAX_WAIT = 2000;
+    private final static int PAGE_AJAX_WAIT = 500;
     private int proxyChangeCounter = Integer.MAX_VALUE;
+    private final int REQUESTS_PER_PROXY = 5;
 
     public static Props props() {
         return Props.create(TwitterCrawler.class);
@@ -81,7 +84,7 @@ public class TwitterCrawler extends AbstractLoggingActor {
         log.info("Started working on:" + url);
 
         // ToDo: Fix non-working proxies
-        if (proxyChangeCounter > 3) {
+        if (proxyChangeCounter > REQUESTS_PER_PROXY) {
             log.info("Changing Proxy");
             changeProxy(proxy);
             proxyChangeCounter = 0;
@@ -92,25 +95,36 @@ public class TwitterCrawler extends AbstractLoggingActor {
         webDriver.get(url);
         HashSet<String> newUsers = new HashSet<>();
 
-        try {
-            Thread.sleep(PAGE_LOAD_WAIT);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        //Wait for the page to load
+        WebDriverWait webDriverWait = new WebDriverWait(webDriver,10);
+        webDriverWait.until(ExpectedConditions.presenceOfElementLocated(By.id("page-container")));
+        ((JavascriptExecutor) webDriver).executeScript("window.scrollTo(0, document.body.scrollHeight)");
+
+        // Decide if you should skip, wait or scrape the page
+        int initialTweetCount = getTweetCount();
+        if(initialTweetCount == 1) {
+            // If there is only one element, there is no data on this day
+            log.info("No Tweets on this day for "+url);
+            return;
         }
-        long previousPageLength;
-        while (true) {
-            previousPageLength = Jsoup.parse(webDriver.getPageSource()).text().length();
-            ((JavascriptExecutor) webDriver).executeScript("window.scrollTo(0, document.body.scrollHeight)");
-            try {
-                Thread.sleep(PAGE_AJAX_WAIT);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            if (previousPageLength == Jsoup.parse(webDriver.getPageSource()).text().length()) {
-                log.info("Reached End of Page; Gathering Tweets");
-                break;
+        else if(initialTweetCount > 7) {
+            // There could be potentially more tweets, scrolling to find them
+            while (true) {
+                int tweetCount = getTweetCount();
+                ((JavascriptExecutor) webDriver).executeScript("window.scrollTo(0, document.body.scrollHeight)");
+                try {
+                    Thread.sleep(PAGE_AJAX_WAIT);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                if (tweetCount == getTweetCount()) {
+                    log.info("Reached End of Page; Gathering Tweets");
+                    break;
+                }
             }
         }
+
+        // Extract the tweets
         Document twPage = Jsoup.parse(webDriver.getPageSource());
         Elements tweets = twPage.select("ol[id=stream-items-id] li[data-item-type=tweet]");
         for (Element tweetHTML : tweets) {
@@ -119,16 +133,16 @@ public class TwitterCrawler extends AbstractLoggingActor {
             Tweet tweet = new Tweet(tweetDiv);
             newUsers.addAll(tweet.getReferenced_users());
             GraphStoreMaster.getSingleton(getContext()).tell(tweet.toVertex(), getSelf());
-            //extractedTweets.add(tweet);
         }
-        log.info("Scraped " + extractedTweets.size() + " tweets");
         log.info("Found " + newUsers.size() + " new users");
-        // ToDo: Send the scraped tweets to the graph store
-        // ToDo: Send the mentions to the TwitterCrawlingScheduler
         if (newUsers.size() > 0) {
             log.info("Found " + newUsers.size() + " new users");
             getSender().tell(new TwitterCrawlingScheduler.NewReference(newUsers), getSelf());
         }
+    }
+
+    private int getTweetCount() {
+        return webDriver.findElement(By.id("stream-items-id")).findElements(By.tagName("li")).size();
     }
 
     @Override

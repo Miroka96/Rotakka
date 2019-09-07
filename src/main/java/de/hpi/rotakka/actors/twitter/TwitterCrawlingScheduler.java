@@ -14,9 +14,9 @@ import lombok.NoArgsConstructor;
 import org.omg.CosNaming.NamingContextPackage.NotFound;
 
 import java.io.Serializable;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.time.Duration;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 public class TwitterCrawlingScheduler extends AbstractReplicationActor {
@@ -37,6 +37,9 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
     private LinkedList<String> workQueue = new LinkedList<>();
     private ArrayList<String> scrapedUsers = new ArrayList<>();
     private ArrayList<CheckedProxy> storedProxies = new ArrayList<>();
+
+    private Date startDate;
+    private Date endDate;
 
     public static Props props() {
         return Props.create(TwitterCrawlingScheduler.class);
@@ -75,8 +78,18 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
 
     @Override
     public void preStart() {
+        // Todo: Make Adaptive
+        try {
+            this.startDate = new SimpleDateFormat("dd-MM-yyyy").parse("01-05-2019");
+            this.endDate = new SimpleDateFormat("dd-MM-yyyy").parse("01-06-2019");
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+
+
         for(String twitterUser : entryPoints) {
-            workQueue.addAll(createCrawlingLinks(twitterUser, 2018, 2018));
+            workQueue.addAll(createCrawlingLinks(twitterUser));
             scrapedUsers.add(twitterUser);
         }
         storedProxies.add(null);
@@ -94,7 +107,7 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
     private void handleNewReference(NewReference message) {
         for(String user : message.getReferences()) {
             if(!scrapedUsers.contains(user)) {
-                workQueue.addAll(createCrawlingLinks(user, 2018, 2018));
+                workQueue.addAll(createCrawlingLinks(user));
                 scrapedUsers.add(user);
                 log.info("Current Work Queue Size: "+workQueue.size());
 
@@ -168,27 +181,28 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
         }
     }
 
-    private ArrayList<String> createCrawlingLinks(String userID, int startYear, int endYear) {
+    private ArrayList<String> createCrawlingLinks(String userID) {
         ArrayList<String> crawlingLinks = new ArrayList<>();
 
-        // Generate Possible start & end dates
-        for(int year = startYear; year <= endYear; year++) {
-            for(int month = 1; month<=12; month++) {
-                String monthString;
-                if(month < 10) {
-                    monthString = "0" + month;
-                }
-                else {
-                    monthString = Integer.toString(month);
-                }
-                String startDate = year + "-" + monthString + "-01";
-                LocalDate convertedDate = LocalDate.parse(startDate, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-                convertedDate = convertedDate.withDayOfMonth(convertedDate.getMonth().length(convertedDate.isLeapYear()));
-                String endDate = year + "-" + monthString + "-" + convertedDate.getDayOfMonth();
-                String crawlingLink = String.format(TWITTER_ADVANCED_URL, userID, startDate, endDate);
-                crawlingLinks.add(crawlingLink);
-            }
+        Calendar startCal = Calendar.getInstance();
+        Calendar endCal = Calendar.getInstance();
+        startCal.setTime(this.startDate);
+        endCal.setTime(this.startDate);
+        endCal.add(Calendar.DAY_OF_MONTH, 1);
+
+        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+
+        while(startCal.getTime().before(this.endDate)) {
+            String startDateString = dateFormat.format(startCal.getTime());
+            String endDateString = dateFormat.format(endCal.getTime());
+
+            String crawlingLink = String.format(TWITTER_ADVANCED_URL, userID, startDateString, endDateString);
+            crawlingLinks.add(crawlingLink);
+
+            startCal.add(Calendar.DAY_OF_MONTH, 1);
+            endCal.add(Calendar.DAY_OF_MONTH, 1);
         }
+
         return crawlingLinks;
     }
 

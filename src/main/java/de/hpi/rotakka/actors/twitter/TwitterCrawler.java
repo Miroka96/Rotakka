@@ -24,9 +24,7 @@ import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.NoSuchElementException;
 
 public class TwitterCrawler extends AbstractLoggingActor {
@@ -57,16 +55,13 @@ public class TwitterCrawler extends AbstractLoggingActor {
     }
 
     private WebDriver webDriver;
-    private List<Tweet> extractedTweets = new ArrayList<>();
 
     private void handleCrawlURL(@NotNull CrawlURL message) {
         try {
             crawl(message.getUrl(), message.getProxy());
         } catch (WebDriverException e) {
             log.error("Website " + message.getUrl() + " could not be crawled: " + e.getMessage());
-            return;
         }
-
         getSender().tell(new TwitterCrawlingScheduler.FinishedWork(), getSelf());
     }
 

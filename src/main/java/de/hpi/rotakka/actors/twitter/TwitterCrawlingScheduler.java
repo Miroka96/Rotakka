@@ -6,6 +6,7 @@ import akka.actor.Props;
 import akka.cluster.Cluster;
 import akka.cluster.ddata.*;
 import de.hpi.rotakka.actors.AbstractReplicationActor;
+import de.hpi.rotakka.actors.cluster.MetricsListener;
 import de.hpi.rotakka.actors.proxy.CheckedProxy;
 import de.hpi.rotakka.actors.utils.Messages;
 import lombok.AllArgsConstructor;
@@ -89,9 +90,7 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
         }
 
         userQueue.addAll(entryPoints);
-        String firstUser = userQueue.pop();
-        workPackets.addAll(createCrawlingLinks(firstUser));
-        scrapedUsers.add(firstUser);
+        populateWorkPacketsQueueIfNecessary();
 
         storedProxies.add(null);
         log.info("Generated "+workPackets.size()+" work packets");
@@ -208,6 +207,7 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
                 String user = userQueue.pop();
                 workPackets.addAll(createCrawlingLinks(user));
                 scrapedUsers.add(user);
+                MetricsListener.getSingleton(getContext()).tell(new MetricsListener.FinishedUser(), getSelf());
             } else {
                 log.error("NO MORE WORK AVAILABLE; SHUTTING DOWN SYSTEM");
                 context().system().terminate();

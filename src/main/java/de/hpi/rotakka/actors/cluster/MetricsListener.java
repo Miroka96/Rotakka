@@ -25,6 +25,7 @@ public class MetricsListener extends AbstractClusterActor {
 
 	private final ClusterMetricsExtension extension = ClusterMetricsExtension.get(getContext().system());
 	private long scrapedTweets = 0;
+    private long finishedUsers = 0;
 
 	@Data
 	@NoArgsConstructor
@@ -32,6 +33,11 @@ public class MetricsListener extends AbstractClusterActor {
 	public static final class ScrapedTweetCount implements Serializable {
 		public static final long serialVersionUID = 1L;
 		public int tweetCount;
+	}
+
+    @NoArgsConstructor
+    public static final class FinishedUser implements Serializable {
+        public static final long serialVersionUID = 1L;
 	}
 
 	public static ActorSelection getSingleton(akka.actor.ActorContext context) {
@@ -54,6 +60,7 @@ public class MetricsListener extends AbstractClusterActor {
 			.match(ClusterMetricsChanged.class, this::logMetrics)
 			.match(CurrentClusterState.class, message -> {/*Ignore*/})
 			.match(ScrapedTweetCount.class, this::handleScrapedTweetCount)
+            .match(FinishedUser.class, msg -> finishedUsers++)
 			.build();
 	}
 	
@@ -62,7 +69,7 @@ public class MetricsListener extends AbstractClusterActor {
 			if (nodeMetrics.address().equals(this.cluster.selfAddress())) {
 				logHeap(nodeMetrics);
 				logCpu(nodeMetrics);
-				logScrapedTweets();
+                logTweetMetrics();
 			}
 		}
 	}
@@ -81,8 +88,9 @@ public class MetricsListener extends AbstractClusterActor {
 		}
 	}
 
-	private void logScrapedTweets() {
+	private void logTweetMetrics() {
 		this.log.info("Total Scraped Tweets: {}", scrapedTweets);
+		this.log.info("Total Scraped Users: {}", finishedUsers);
 	}
 
 	private void handleScrapedTweetCount(ScrapedTweetCount message) {

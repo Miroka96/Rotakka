@@ -34,7 +34,7 @@ public class TwitterCrawler extends AbstractLoggingActor {
     public final static String DEFAULT_NAME = "twitterCrawler";
     private final static int PAGE_AJAX_WAIT = 500;
     private int proxyChangeCounter = Integer.MAX_VALUE;
-    private final int REQUESTS_PER_PROXY = 40;
+    private final int REQUESTS_PER_PROXY = 30;
 
     public static Props props() {
         return Props.create(TwitterCrawler.class);
@@ -107,7 +107,7 @@ public class TwitterCrawler extends AbstractLoggingActor {
         try {
             initialTweetCount = getTweetCount();
         }
-        catch(NoSuchElementException e) {
+        catch(Exception e) {
             log.info("No Tweets for this day (No Such Element): " + url);
             return;
         }
@@ -153,7 +153,7 @@ public class TwitterCrawler extends AbstractLoggingActor {
         }
     }
 
-    private int getTweetCount() {
+    private int getTweetCount() throws NoSuchElementException {
         return webDriver.findElement(By.id("stream-items-id")).findElements(By.tagName("li")).size();
     }
 

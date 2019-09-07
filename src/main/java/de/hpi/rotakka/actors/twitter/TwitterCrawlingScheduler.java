@@ -29,7 +29,7 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
     private final Key<ORSet<String>> newUsersKey = ORSetKey.create("new_users");
     private final Key<ORSet<String>> proxyListKey = ORSetKey.create("checkedProxyListKey");
 
-    private final ArrayList<String> entryPoints = new ArrayList<>(Arrays.asList("elonmusk","realDonaldTrump", "HPI_DE", "HillaryClinton", "ladygaga"));
+    private final ArrayList<String> entryPoints = new ArrayList<>(Arrays.asList("S100D27", "elonmusk","realDonaldTrump", "HillaryClinton", "ladygaga"));
     private final static String TWITTER_ADVANCED_URL = "https://twitter.com/search?l=&q=from%%3A%s%%20since%%3A%s%%20until%%3A%s";
 
     private ArrayList<ActorRef> awaitingWork = new ArrayList<>();

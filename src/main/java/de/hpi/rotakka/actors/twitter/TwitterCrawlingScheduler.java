@@ -110,7 +110,7 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
             if(!scrapedUsers.contains(user)) {
                 userQueue.add(user);
                 scrapedUsers.add(user);
-                log.info("Current Work Queue Size: "+ userQueue.size());
+                log.debug("Current Work Queue Size: " + userQueue.size());
 
                 Replicator.Update<ORSet<String>> update = new Replicator.Update<>(
                         newUsersKey,

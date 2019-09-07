@@ -1,5 +1,6 @@
 package de.hpi.rotakka.actors.cluster;
 
+import akka.actor.ActorSelection;
 import akka.actor.Props;
 import akka.cluster.ClusterEvent.CurrentClusterState;
 import akka.cluster.metrics.ClusterMetricsChanged;
@@ -9,6 +10,11 @@ import akka.cluster.metrics.StandardMetrics;
 import akka.cluster.metrics.StandardMetrics.Cpu;
 import akka.cluster.metrics.StandardMetrics.HeapMemory;
 import de.hpi.rotakka.actors.AbstractClusterActor;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.io.Serializable;
 
 public class MetricsListener extends AbstractClusterActor {
 
@@ -18,6 +24,19 @@ public class MetricsListener extends AbstractClusterActor {
 	}
 
 	private final ClusterMetricsExtension extension = ClusterMetricsExtension.get(getContext().system());
+	private long scrapedTweets = 0;
+
+	@Data
+	@NoArgsConstructor
+	@AllArgsConstructor
+	public static final class ScrapedTweetCount implements Serializable {
+		public static final long serialVersionUID = 1L;
+		public int tweetCount;
+	}
+
+	public static ActorSelection getSingleton(akka.actor.ActorContext context) {
+		return context.actorSelection("/user/"+DEFAULT_NAME);
+	}
 	
 	@Override
 	public void preStart() {
@@ -34,6 +53,7 @@ public class MetricsListener extends AbstractClusterActor {
 		return receiveBuilder()
 			.match(ClusterMetricsChanged.class, this::logMetrics)
 			.match(CurrentClusterState.class, message -> {/*Ignore*/})
+			.match(ScrapedTweetCount.class, this::handleScrapedTweetCount)
 			.build();
 	}
 	
@@ -42,6 +62,7 @@ public class MetricsListener extends AbstractClusterActor {
 			if (nodeMetrics.address().equals(this.cluster.selfAddress())) {
 				logHeap(nodeMetrics);
 				logCpu(nodeMetrics);
+				logScrapedTweets();
 			}
 		}
 	}
@@ -57,6 +78,16 @@ public class MetricsListener extends AbstractClusterActor {
 		Cpu cpu = StandardMetrics.extractCpu(nodeMetrics);
 		if (cpu != null && cpu.systemLoadAverage().isDefined()) {
 			this.log.debug("Load: {} ({} processors)", cpu.systemLoadAverage().get(), cpu.processors());
+		}
+	}
+
+	private void logScrapedTweets() {
+		this.log.info("Total Scraped Tweets: {}", scrapedTweets);
+	}
+
+	private void handleScrapedTweetCount(ScrapedTweetCount message) {
+		if (Long.MAX_VALUE - scrapedTweets > message.tweetCount) {
+			scrapedTweets += message.tweetCount;
 		}
 	}
 }

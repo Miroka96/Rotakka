@@ -2,6 +2,7 @@ package de.hpi.rotakka.actors.twitter;
 
 import akka.actor.Props;
 import de.hpi.rotakka.actors.AbstractLoggingActor;
+import de.hpi.rotakka.actors.cluster.MetricsListener;
 import de.hpi.rotakka.actors.data.graph.GraphStoreMaster;
 import de.hpi.rotakka.actors.proxy.CheckedProxy;
 import de.hpi.rotakka.actors.utils.Messages;
@@ -26,13 +27,14 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 public class TwitterCrawler extends AbstractLoggingActor {
 
     public final static String DEFAULT_NAME = "twitterCrawler";
     private final static int PAGE_AJAX_WAIT = 500;
     private int proxyChangeCounter = Integer.MAX_VALUE;
-    private final int REQUESTS_PER_PROXY = 5;
+    private final int REQUESTS_PER_PROXY = 40;
 
     public static Props props() {
         return Props.create(TwitterCrawler.class);
@@ -101,10 +103,17 @@ public class TwitterCrawler extends AbstractLoggingActor {
         ((JavascriptExecutor) webDriver).executeScript("window.scrollTo(0, document.body.scrollHeight)");
 
         // Decide if you should skip, wait or scrape the page
-        int initialTweetCount = getTweetCount();
+        int initialTweetCount;
+        try {
+            initialTweetCount = getTweetCount();
+        }
+        catch(NoSuchElementException e) {
+            log.info("No Tweets for this day (No Such Element): " + url);
+            return;
+        }
         if(initialTweetCount == 1) {
             // If there is only one element, there is no data on this day
-            log.info("No Tweets on this day for "+url);
+            log.info("No Tweets on this day for " + url);
             return;
         }
         else if(initialTweetCount > 7) {
@@ -127,14 +136,17 @@ public class TwitterCrawler extends AbstractLoggingActor {
         // Extract the tweets
         Document twPage = Jsoup.parse(webDriver.getPageSource());
         Elements tweets = twPage.select("ol[id=stream-items-id] li[data-item-type=tweet]");
+        int foundTweets = 0;
         for (Element tweetHTML : tweets) {
             Element tweetDiv = tweetHTML.children().get(0);
             tweetDiv.children().select("div[class=content]");
             Tweet tweet = new Tweet(tweetDiv);
             newUsers.addAll(tweet.getReferenced_users());
             GraphStoreMaster.getSingleton(getContext()).tell(tweet.toVertex(), getSelf());
+            foundTweets++;
         }
         log.info("Found " + newUsers.size() + " new users");
+        MetricsListener.getSingleton(getContext()).tell(new MetricsListener.ScrapedTweetCount(foundTweets), getSelf());
         if (newUsers.size() > 0) {
             log.info("Found " + newUsers.size() + " new users");
             getSender().tell(new TwitterCrawlingScheduler.NewReference(newUsers), getSelf());

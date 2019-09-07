@@ -15,6 +15,7 @@ import lombok.Data;
 import java.io.Serializable;
 import java.util.*;
 
+// ToDo: Add worker references to DataReplicator
 public class ProxyCheckingScheduler extends AbstractReplicationActor {
 
     public static final String DEFAULT_NAME = "proxyCheckingScheduler";
@@ -114,7 +115,6 @@ public class ProxyCheckingScheduler extends AbstractReplicationActor {
         boolean newlyAdded = checkedProxies.add(msg.getCheckedProxy());
         if(newlyAdded) {
             log.info("Trying to add CheckedProxies to the DataReplicator");
-            // TODO store proxy into replicator
             Replicator.Update<ORSet<String>> update = new Replicator.Update<>(dataKey, ORSet.create(), Replicator.writeLocal(), curr -> curr.add(node, msg.getCheckedProxy().serialize()));
             replicator.tell(update, getSelf());
         }

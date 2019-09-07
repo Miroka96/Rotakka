@@ -20,6 +20,12 @@ import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.util.*;
 
+
+// ToDO:
+// - Add UserQueue & ScrapedUsers & Workers into DataReplicator
+// - Make a configuration file
+// - Extension: Make userQueue a priority Queue
+// - Extension: Crawling Depth
 public class TwitterCrawlingScheduler extends AbstractReplicationActor {
 
     public static final String DEFAULT_NAME = "TwitterCrawlingScheduler";
@@ -37,7 +43,7 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
     private ArrayList<ActorRef> workers = new ArrayList<>();
     private LinkedList<String> userQueue = new LinkedList<>();
     private LinkedList<String> workPackets = new LinkedList<>();
-    private ArrayList<String> scrapedUsers = new ArrayList<>();
+    private ArrayList<String> knownUsers = new ArrayList<>();
     private ArrayList<CheckedProxy> storedProxies = new ArrayList<>();
 
     private Date startDate;
@@ -106,9 +112,9 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
     // Add retweeted users & mentions to the data replicator to be crawled
     private void handleNewReference(NewReference message) {
         for(String user : message.getReferences()) {
-            if(!scrapedUsers.contains(user)) {
+            if(!knownUsers.contains(user)) {
                 userQueue.add(user);
-                scrapedUsers.add(user);
+                knownUsers.add(user);
                 log.debug("Current Work Queue Size: " + userQueue.size());
 
                 Replicator.Update<ORSet<String>> update = new Replicator.Update<>(
@@ -122,9 +128,6 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
     }
 
     private void handleFinishedWork(FinishedWork message) {
-        // final Replicator.ReadConsistency readNewUsers = new Replicator.ReadMajority(Duration.ofSeconds(5));
-        // replicator.tell(new Replicator.Get<>(newUsersKey, readNewUsers), getSelf());
-        // awaitingWork.add(getSender());
         populateWorkPacketsQueueIfNecessary();
         final Replicator.ReadConsistency readMajority = new Replicator.ReadMajority(Duration.ofSeconds(5));
         replicator.tell(new Replicator.Get<>(proxyListKey, readMajority), getSelf());
@@ -132,6 +135,7 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
     }
 
     private void handleReplicatorMessages(Replicator.GetSuccess message) {
+        // ToDo: This does not have any use as far as i see
         if(message.key().equals(newUsersKey)) {
             Replicator.GetSuccess<ORSet<String>> getSuccessObject = message;
             Set<String> newUserSet = getSuccessObject.dataValue().getElements();
@@ -206,7 +210,7 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
             if (!userQueue.isEmpty()) {
                 String user = userQueue.pop();
                 workPackets.addAll(createCrawlingLinks(user));
-                scrapedUsers.add(user);
+                knownUsers.add(user);
                 MetricsListener.getSingleton(getContext()).tell(new MetricsListener.FinishedUser(), getSelf());
             } else {
                 log.error("NO MORE WORK AVAILABLE; SHUTTING DOWN SYSTEM");

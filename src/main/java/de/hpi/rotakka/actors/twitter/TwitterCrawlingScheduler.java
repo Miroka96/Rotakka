@@ -35,7 +35,6 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
     private final Key<ORSet<String>> crawledUsersKey = ORSetKey.create("crawled_users");
     private final Key<ORSet<String>> proxyListKey = ORSetKey.create("checked_proxy_list");
 
-    private final ArrayList<String> entryPoints = new ArrayList<>(Arrays.asList("S100D27", "elonmusk","realDonaldTrump", "HillaryClinton", "ladygaga"));
     private final static String TWITTER_ADVANCED_URL = "https://twitter.com/search?l=&q=from%%3A%s%%20since%%3A%s%%20until%%3A%s";
 
     private ArrayList<ActorRef> awaitingWork = new ArrayList<>();
@@ -45,8 +44,9 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
     private ArrayList<String> knownUsers = new ArrayList<>();
     private ArrayList<CheckedProxy> storedProxies = new ArrayList<>();
 
-    private Date startDate;
-    private Date endDate;
+    private Date startDate = settings.startDate;
+    private Date endDate = settings.endDate;
+    private List<String> entryPoints =  settings.entryPointUsers;
 
     public static Props props() {
         return Props.create(TwitterCrawlingScheduler.class);
@@ -85,15 +85,6 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
 
     @Override
     public void preStart() {
-        // Todo: Make Adaptive
-        try {
-            this.startDate = new SimpleDateFormat("dd-MM-yyyy").parse("01-05-2019");
-            this.endDate = new SimpleDateFormat("dd-MM-yyyy").parse("01-06-2019");
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
-
         // Add the entry points to the data replicator
         for(String user : entryPoints) {
             Replicator.Update<ORSet<String>> update = new Replicator.Update<>(

@@ -13,7 +13,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-// ToDo: Persist worker references in DataReplicator
+
 public class ProxyCrawlingScheduler extends AbstractReplicationActor {
 
     public static final String DEFAULT_NAME = "proxyCrawlingScheduler";

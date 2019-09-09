@@ -14,7 +14,6 @@ import lombok.Data;
 import java.io.Serializable;
 import java.util.*;
 
-// ToDo: Add worker references to DataReplicator
 public class ProxyCheckingScheduler extends AbstractReplicationActor {
 
     public static final String DEFAULT_NAME = "proxyCheckingScheduler";
@@ -35,11 +34,6 @@ public class ProxyCheckingScheduler extends AbstractReplicationActor {
 
     public static Props props() {
         return Props.create(ProxyCheckingScheduler.class);
-    }
-
-    public enum ProxyStatus {
-        REACHABLE,
-        UNREACHABLE
     }
 
     @Data

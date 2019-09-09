@@ -65,7 +65,7 @@ public class GraphStoreSlave extends AbstractLoggingActor {
     @AllArgsConstructor
     public static final class StartedBuffering implements Serializable {
         public static final long serialVersionUID = 1;
-        GraphStoreMaster.StartBufferings originalRequest;
+        GraphStoreMaster.StartShardCopying originalRequest;
     }
 
 
@@ -280,10 +280,10 @@ public class GraphStoreSlave extends AbstractLoggingActor {
     private void answer(@NotNull ShardRequest request) {
         log.debug("Received shard request from " + getSender() + " for shard " + request.shardNumber);
         getMaster().tell(
-                new GraphStoreMaster.StartBufferings(
+                new GraphStoreMaster.StartShardCopying(
                         request.shardNumber,
-                        new ActorRef[]{getSender(), getSelf()},
-                        getSelf()
+                        getSelf(),
+                        getSender()
                 ),
                 getSelf()
         );
@@ -292,32 +292,21 @@ public class GraphStoreSlave extends AbstractLoggingActor {
     private void react(@NotNull StartedBuffering msg) {
         StringBuilder sb = new StringBuilder();
         sb.append("Received started-buffering notification for shard ")
-                .append(msg.originalRequest.shardNumber)
-                .append(" requested by ")
-                .append(msg.originalRequest.requestedBy);
-        if (msg.originalRequest.requestedBy == getSelf()) {
-            sb.append(", sending shard to ");
-            boolean first = true;
-            for (ActorRef otherSlave : msg.originalRequest.affectedShardHolders) {
-                if (otherSlave == getSelf()) {
-                    continue;
-                }
-                if (first) {
-                    first = false;
-                } else {
-                    sb.append(", ");
-                }
-                sb.append(otherSlave);
+                .append(msg.originalRequest.shardNumber);
+        if (msg.originalRequest.from == getSelf()) {
+            sb.append(" to copy it from ")
+                    .append(msg.originalRequest.from)
+                    .append(" to ")
+                    .append(msg.originalRequest.to);
 
-                assert shards.get(msg.originalRequest.shardNumber) != null : "shard " + msg.originalRequest.shardNumber + " does not/no longer exist at " + getSelf().toString();
-                otherSlave.tell(
-                        new SentShard(
-                                msg.originalRequest.shardNumber,
-                                shards.get(msg.originalRequest.shardNumber).toSubGraph()),
-                        getSelf()
-                );
+            assert shards.get(msg.originalRequest.shardNumber) != null : "shard " + msg.originalRequest.shardNumber + " does not/no longer exist at " + getSelf().toString();
+            msg.originalRequest.to.tell(
+                    new SentShard(
+                            msg.originalRequest.shardNumber,
+                            shards.get(msg.originalRequest.shardNumber).toSubGraph()),
+                    getSelf()
+            );
 
-            }
         } else {
             sb.append(", ignoring it");
         }

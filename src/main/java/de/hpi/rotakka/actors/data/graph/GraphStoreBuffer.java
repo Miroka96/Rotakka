@@ -73,7 +73,7 @@ public class GraphStoreBuffer extends AbstractLoggingActor {
     public static final class StartBuffering implements Serializable {
         public static final long serialVersionUID = 1;
         public ActorRef notify;
-        public GraphStoreMaster.StartBufferings originalRequest;
+        public GraphStoreMaster.StartShardCopying originalRequest;
     }
 
     @Data

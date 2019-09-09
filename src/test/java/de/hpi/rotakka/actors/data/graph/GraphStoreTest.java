@@ -342,12 +342,12 @@ public class GraphStoreTest extends JUnitSuite {
     public void fullStoreWithInteractionAndLaterSlaves() {
         new TestKit(system) {
             {
+                TestProbe us = new TestProbe(system);
+
                 ActorRef master = createMaster(2, 2, true);
                 //ActorRef forwarder = system.actorOf(ForwardActor.props(master), GraphStoreMaster.PROXY_NAME); // lies in user namespace
                 ActorRef slave1 = system.actorOf(GraphStoreSlave.props(), "Slave1");
                 ActorRef slave2 = system.actorOf(GraphStoreSlave.props(), "Slave2");
-
-                TestProbe us = new TestProbe(system);
 
                 GraphStoreMaster.Vertex v1 = new GraphStoreMaster.Vertex();
                 v1.key = "v1";
@@ -372,7 +372,7 @@ public class GraphStoreTest extends JUnitSuite {
                 master.tell(v2, us.ref());
                 master.tell(e2, us.ref());
 
-                us.expectNoMessage(FiniteDuration.apply(2, TimeUnit.SECONDS));
+                us.expectNoMessage(FiniteDuration.apply(1, TimeUnit.SECONDS));
 
                 ActorRef slave3 = system.actorOf(GraphStoreSlave.props(), "Slave3");
                 ActorRef slave4 = system.actorOf(GraphStoreSlave.props(), "Slave4");
@@ -382,7 +382,7 @@ public class GraphStoreTest extends JUnitSuite {
                 master.tell(v4, us.ref());
                 master.tell(e4, us.ref());
 
-                us.expectNoMessage(FiniteDuration.apply(10, TimeUnit.SECONDS));
+                us.expectNoMessage(FiniteDuration.apply(1, TimeUnit.SECONDS));
 
                 system.stop(master);
                 system.stop(slave1);

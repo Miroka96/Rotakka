@@ -21,6 +21,7 @@ import de.hpi.rotakka.actors.proxy.crawling.ProxyCrawler;
 import de.hpi.rotakka.actors.proxy.crawling.ProxyCrawlingScheduler;
 import de.hpi.rotakka.actors.twitter.TwitterCrawler;
 import de.hpi.rotakka.actors.twitter.TwitterCrawlingScheduler;
+import org.jetbrains.annotations.NotNull;
 import scala.concurrent.Await;
 import scala.concurrent.duration.Duration;
 
@@ -40,6 +41,7 @@ abstract class ClusterSystem {
                 .withFallback(ConfigFactory.load("rotakka"));
     }
 
+    @NotNull
     private ActorSystem createSystem() {
 
         // Create the ActorSystem

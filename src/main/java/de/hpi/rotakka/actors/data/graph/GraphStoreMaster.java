@@ -65,11 +65,11 @@ public class GraphStoreMaster extends AbstractLoggingActor {
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
-    public static final class StartBufferings implements Serializable {
+    public static final class StartShardCopying implements Serializable {
         public static final long serialVersionUID = 1;
         int shardNumber;
-        ActorRef[] affectedShardHolders;
-        ActorRef requestedBy;
+        ActorRef from;
+        ActorRef to;
     }
 
     @Data
@@ -144,7 +144,7 @@ public class GraphStoreMaster extends AbstractLoggingActor {
                 .match(Vertex.class, this::add)
                 .match(Edge.class, this::add)
                 .match(Messages.RegisterMe.class, this::add)
-                .match(StartBufferings.class, this::startBuffering)
+                .match(StartShardCopying.class, this::safeStartCopying)
                 .match(ShardReady.class, this::enableShard)
                 .match(RequestedEdgeLocation.class, this::get)
                 .match(RequestedVertexLocation.class, this::get)
@@ -153,14 +153,14 @@ public class GraphStoreMaster extends AbstractLoggingActor {
 
     private void add(@NotNull Vertex vertex) {
         ShardedVertex shardedVertex = new ShardedVertex(shardMapper.keyToShardNumber(vertex.key), vertex);
-        log.debug("Received Vertex " + vertex.key + " and assigned it to shard " + shardedVertex.shardNumber);
-        shardMapper.tellShard(shardedVertex.shardNumber, shardedVertex, getSelf());
+        log.debug("Received Vertex " + vertex.key + " and assigned it to shard " + shardedVertex.shardNumber
+                + " - success: " + shardMapper.tellShard(shardedVertex.shardNumber, shardedVertex, getSelf()));
     }
 
     private void add(@NotNull Edge edge) {
         ShardedEdge shardedEdge = new ShardedEdge(shardMapper.keyToShardNumber(edge.key), edge);
-        log.debug("Received Edge " + edge.key + " and assigned it to shard " + shardedEdge.shardNumber);
-        shardMapper.tellShard(shardedEdge.shardNumber, shardedEdge, getSelf());
+        log.debug("Received Edge " + edge.key + " and assigned it to shard " + shardedEdge.shardNumber
+                + " - success: " + shardMapper.tellShard(shardedEdge.shardNumber, shardedEdge, getSelf()));
     }
 
     public static class ExtendableSubGraph {
@@ -298,40 +298,89 @@ public class GraphStoreMaster extends AbstractLoggingActor {
         slave.tell(new AssignedShards(shardsToMove), getSelf());
     }
 
-    private void startBuffering(@NotNull StartBufferings cmds) {
-        StringBuilder sb = new StringBuilder();
-        for (ActorRef slave : cmds.affectedShardHolders) {
-            sb.append(", ");
-            sb.append(slave.toString());
-            shardMapper.enableBuffer(cmds.shardNumber, slave, cmds, getSelf());
+    private Map<Integer, Map<ActorRef, Queue<StartShardCopying>>> bufferQueues = new HashMap<>();
+
+    @NotNull
+    private Queue<StartShardCopying> getLockingQueue(int shardNumber, @NotNull ActorRef actor) {
+        Map<ActorRef, Queue<StartShardCopying>> queues = bufferQueues.computeIfAbsent(
+                shardNumber,
+                k -> new HashMap<>());
+
+        Queue<StartShardCopying> lockingQueue = queues.computeIfAbsent(
+                actor,
+                ignore1 -> new LinkedList<>());
+
+        return lockingQueue;
+    }
+
+    private void safeStartCopying(@NotNull StartShardCopying cmd) {
+        assert getSender() == cmd.from;
+        Queue<StartShardCopying> lockingQueue = getLockingQueue(cmd.shardNumber, cmd.from);
+        lockingQueue.add(cmd);
+
+        if (lockingQueue.size() > 1) {
+            // already one ongoing copy procedure
+            log.debug("Received shard copying command and put it into queue to process it later: " + cmd);
+            return;
         }
-        sb.delete(0, 2);
-        log.debug("Received StartBuffering command for shard " +
-                cmds.shardNumber + ", requested by " + cmds.requestedBy.toString() +
-                " and affecting the following shard holders: " + sb.toString());
+
+        // no lock on the shard to copy from
+        // necessary, because otherwise different copy instructions could like to
+        // copy different states of the same shard which is currently not supported
+        startCopying(cmd);
+    }
+
+    private void startCopying(@NotNull StartShardCopying cmd) {
+        shardMapper.enableBuffer(cmd.shardNumber, cmd.from, cmd, getSelf());
+        shardMapper.enableBuffer(cmd.shardNumber, cmd.to, cmd, getSelf());
+
+        log.debug("Starting shard copying for shard " + cmd.shardNumber +
+                ", to be copied from " + cmd.from.toString() + " to " + cmd.to.toString());
     }
 
     private void enableShard(@NotNull ShardReady msg) {
+        assert msg.shardHolder != null;
+        log.debug("Received " + msg);
+
+
+        boolean successfullyDisabled = shardMapper.disableBuffer(msg.shardNumber, msg.shardHolder, getSelf());
+        if (!successfullyDisabled) {
+            log.debug("Shard " + msg.shardNumber + " could not be enabled on slave " +
+                    msg.shardHolder + " - probably the shard has been deleted");
+            return;
+        }
+
+        // buffer should now be flushed
+
         StringBuilder sb = new StringBuilder();
         sb.append("Enabling shard ");
         sb.append(msg.shardNumber);
         sb.append(" on slave ");
         sb.append(msg.shardHolder);
-        boolean safeToDelete = shardMapper.disableBuffer(msg.shardNumber, msg.shardHolder, getSelf());
-
         if (msg.copiedFrom != null) {
             sb.append(" copied from ");
             sb.append(msg.copiedFrom);
-        }
-        if (msg.copiedFrom != null && shardMapper.getSlaves(msg.shardNumber).length > duplicationLevel) {
-            if (safeToDelete) {
-                sb.append(" and telling previous shard holder to delete shard");
-                msg.copiedFrom.tell(new GraphStoreSlave.ShardToDelete(msg.shardNumber), getSelf());
-                shardMapper.unassign(msg.copiedFrom, msg.shardNumber);
+
+            Queue<StartShardCopying> lockingQueue = getLockingQueue(msg.shardNumber, msg.copiedFrom);
+            StartShardCopying executedCommand = lockingQueue.remove();
+            assert executedCommand != null : "Shard " + msg.shardNumber + " was not locked before copied from " +
+                    msg.copiedFrom + " to " + msg.shardHolder;
+            assert executedCommand.to == msg.shardHolder :
+                    "Removed wrong shard copy task from locking queue: " + executedCommand;
+
+            StartShardCopying nextCommand = lockingQueue.peek();
+            if (nextCommand != null) {
+                startCopying(nextCommand);
+                sb.append(" and started next copy operation");
             } else {
-                sb.append(" but shard is still needed for copy operation");
+                if (shardMapper.getSlaves(msg.shardNumber).length > duplicationLevel) {
+                    sb.append(" and told previous shard holder to delete shard");
+                    msg.copiedFrom.tell(new GraphStoreSlave.ShardToDelete(msg.shardNumber), getSelf());
+                    shardMapper.unassign(msg.copiedFrom, msg.shardNumber);
+                }
             }
         }
+
         log.debug(sb.toString());
     }
 

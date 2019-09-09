@@ -3,7 +3,6 @@ package de.hpi.rotakka.actors   .proxy.checking;
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
 import akka.actor.Props;
-import akka.cluster.Cluster;
 import akka.cluster.ddata.*;
 import de.hpi.rotakka.actors.AbstractReplicationActor;
 import de.hpi.rotakka.actors.proxy.CheckedProxy;
@@ -27,8 +26,8 @@ public class ProxyCheckingScheduler extends AbstractReplicationActor {
     private HashSet<CheckedProxy> checkedProxies = new HashSet<>();
 
     private final ActorRef replicator = DistributedData.get(getContext().getSystem()).replicator();
-    private final Key<ORSet<String>> dataKey = ORSetKey.create("checkedProxyListKey");
-    private final Cluster node = Cluster.get(getContext().getSystem());
+    private final Key<ORSet<String>> dataKey = ORSetKey.create("checked_proxy_list");
+    private final SelfUniqueAddress selfUniqueAddress = DistributedData.get(getContext().getSystem()).selfUniqueAddress();
 
     public static ActorSelection getSingleton(akka.actor.ActorContext context) {
         return context.actorSelection("/user/" + PROXY_NAME);
@@ -115,7 +114,11 @@ public class ProxyCheckingScheduler extends AbstractReplicationActor {
         boolean newlyAdded = checkedProxies.add(msg.getCheckedProxy());
         if(newlyAdded) {
             log.info("Trying to add CheckedProxies to the DataReplicator");
-            Replicator.Update<ORSet<String>> update = new Replicator.Update<>(dataKey, ORSet.create(), Replicator.writeLocal(), curr -> curr.add(node, msg.getCheckedProxy().serialize()));
+            Replicator.Update<ORSet<String>> update = new Replicator.Update<>(
+                    dataKey,
+                    ORSet.create(),
+                    Replicator.writeLocal(),
+                    curr -> curr.add(selfUniqueAddress, msg.getCheckedProxy().serialize()));
             replicator.tell(update, getSelf());
         }
         if(awaitingCheckedProxies.size() > 0) {

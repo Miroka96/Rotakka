@@ -3,7 +3,6 @@ package de.hpi.rotakka.actors.twitter;
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
 import akka.actor.Props;
-import akka.cluster.Cluster;
 import akka.cluster.ddata.*;
 import de.hpi.rotakka.actors.AbstractReplicationActor;
 import de.hpi.rotakka.actors.cluster.MetricsListener;
@@ -22,7 +21,6 @@ import java.util.*;
 
 
 // ToDO:
-// - Add UserQueue & ScrapedUsers & Workers into DataReplicator
 // - Make a configuration file
 // - Extension: Make userQueue a priority Queue
 // - Extension: Crawling Depth
@@ -32,9 +30,10 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
     public static final String PROXY_NAME = DEFAULT_NAME + "Proxy";
 
     private final ActorRef replicator = DistributedData.get(getContext().getSystem()).replicator();
-    private final Cluster node = Cluster.get(getContext().getSystem());
-    private final Key<ORSet<String>> newUsersKey = ORSetKey.create("new_users");
-    private final Key<ORSet<String>> proxyListKey = ORSetKey.create("checkedProxyListKey");
+    private final SelfUniqueAddress selfUniqueAddress = DistributedData.get(getContext().getSystem()).selfUniqueAddress();
+    private final Key<ORSet<String>> usersQueueKey = ORSetKey.create("users_queue");
+    private final Key<ORSet<String>> crawledUsersKey = ORSetKey.create("crawled_users");
+    private final Key<ORSet<String>> proxyListKey = ORSetKey.create("checked_proxy_list");
 
     private final ArrayList<String> entryPoints = new ArrayList<>(Arrays.asList("S100D27", "elonmusk","realDonaldTrump", "HillaryClinton", "ladygaga"));
     private final static String TWITTER_ADVANCED_URL = "https://twitter.com/search?l=&q=from%%3A%s%%20since%%3A%s%%20until%%3A%s";
@@ -95,6 +94,16 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
             e.printStackTrace();
         }
 
+        // Add the entry points to the data replicator
+        for(String user : entryPoints) {
+            Replicator.Update<ORSet<String>> update = new Replicator.Update<>(
+                    usersQueueKey,
+                    ORSet.create(),
+                    Replicator.writeLocal(),
+                    curr -> curr.add(selfUniqueAddress, user));
+            replicator.tell(update, getSelf());
+        }
+
         userQueue.addAll(entryPoints);
         populateWorkPacketsQueueIfNecessary();
 
@@ -104,6 +113,7 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
 
     private void handleRegisterMe(Messages.RegisterMe message) {
         workers.add(getSender());
+
         populateWorkPacketsQueueIfNecessary();
         String workPacket = workPackets.pop();
         getSender().tell(new TwitterCrawler.CrawlURL(workPacket, storedProxies.get(new Random().nextInt(storedProxies.size()))), this.getSelf());
@@ -118,10 +128,10 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
                 log.debug("Current Work Queue Size: " + userQueue.size());
 
                 Replicator.Update<ORSet<String>> update = new Replicator.Update<>(
-                        newUsersKey,
+                        usersQueueKey,
                         ORSet.create(),
                         Replicator.writeLocal(),
-                        curr -> curr.add(node, user));
+                        curr -> curr.add(selfUniqueAddress, user));
                 replicator.tell(update, getSelf());
             }
         }
@@ -136,17 +146,17 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
 
     private void handleReplicatorMessages(Replicator.GetSuccess message) {
         // ToDo: This does not have any use as far as i see
-        if(message.key().equals(newUsersKey)) {
+        if(message.key().equals(usersQueueKey)) {
             Replicator.GetSuccess<ORSet<String>> getSuccessObject = message;
             Set<String> newUserSet = getSuccessObject.dataValue().getElements();
             if(awaitingWork.size() > 0) {
                 ActorRef waitingActor = awaitingWork.get(0);
                 String nextUser = newUserSet.iterator().next();
                 Replicator.Update<ORSet<String>> update = new Replicator.Update<>(
-                        newUsersKey,
+                        usersQueueKey,
                         ORSet.create(),
                         Replicator.writeLocal(),
-                        curr -> curr.remove(node, nextUser));
+                        curr -> curr.remove(selfUniqueAddress, nextUser));
                 replicator.tell(update, getSelf());
                 waitingActor.tell(new TwitterCrawler.CrawlURL(nextUser, storedProxies.get(new Random().nextInt(storedProxies.size()))), this.getSelf());
             }
@@ -209,6 +219,21 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
         if(workPackets.isEmpty()) {
             if (!userQueue.isEmpty()) {
                 String user = userQueue.pop();
+
+                Replicator.Update<ORSet<String>> removeUser = new Replicator.Update<>(
+                        usersQueueKey,
+                        ORSet.create(),
+                        Replicator.writeLocal(),
+                        curr -> curr.remove(selfUniqueAddress, user));
+                replicator.tell(removeUser, getSelf());
+
+                Replicator.Update<ORSet<String>> addUserToCrawledUsers = new Replicator.Update<>(
+                        crawledUsersKey,
+                        ORSet.create(),
+                        Replicator.writeLocal(),
+                        curr -> curr.add(selfUniqueAddress, user));
+                replicator.tell(addUserToCrawledUsers, getSelf());
+
                 workPackets.addAll(createCrawlingLinks(user));
                 knownUsers.add(user);
                 MetricsListener.getSingleton(getContext()).tell(new MetricsListener.FinishedUser(), getSelf());

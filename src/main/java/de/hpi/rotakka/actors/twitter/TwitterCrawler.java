@@ -1,6 +1,9 @@
 package de.hpi.rotakka.actors.twitter;
 
+import akka.actor.ActorIdentity;
+import akka.actor.Identify;
 import akka.actor.Props;
+import akka.actor.Terminated;
 import de.hpi.rotakka.actors.AbstractLoggingActor;
 import de.hpi.rotakka.actors.cluster.MetricsListener;
 import de.hpi.rotakka.actors.data.graph.GraphStoreMaster;
@@ -51,6 +54,8 @@ public class TwitterCrawler extends AbstractLoggingActor {
     public Receive createReceive() {
         return receiveBuilder()
                 .match(CrawlURL.class, this::handleCrawlURL)
+                .match(ActorIdentity.class, this::handleActorIdentity)
+                .match(Terminated.class, this::handleDeadScheduler)
                 .build();
     }
 
@@ -63,6 +68,11 @@ public class TwitterCrawler extends AbstractLoggingActor {
             log.error("Website " + message.getUrl() + " could not be crawled: " + e.getMessage());
         }
         getSender().tell(new TwitterCrawlingScheduler.FinishedWork(), getSelf());
+    }
+
+    private void handleDeadScheduler(Terminated message) {
+        TwitterCrawlingScheduler.getSingleton(context()).tell(new Messages.RegisterMe(), getSelf());
+        TwitterCrawlingScheduler.getSingleton(getContext()).tell(new Identify(1337), getSelf());
     }
 
     private void changeProxy(CheckedProxy proxy) {
@@ -152,10 +162,16 @@ public class TwitterCrawler extends AbstractLoggingActor {
         return webDriver.findElement(By.id("stream-items-id")).findElements(By.tagName("li")).size();
     }
 
+    private void handleActorIdentity(ActorIdentity message) {
+        // Watch the TwitterCrawlingScheduler to be notified of its death
+        getContext().watch(message.getRef());
+    }
+
     @Override
     public void preStart() throws Exception {
         super.preStart();
         TwitterCrawlingScheduler.getSingleton(context()).tell(new Messages.RegisterMe(), getSelf());
+        TwitterCrawlingScheduler.getSingleton(getContext()).tell(new Identify(1337), getSelf());
     }
 
     @Override

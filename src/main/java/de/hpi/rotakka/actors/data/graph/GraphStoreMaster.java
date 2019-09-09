@@ -362,9 +362,9 @@ public class GraphStoreMaster extends AbstractLoggingActor {
             sb.append(msg.copiedFrom);
 
             Queue<StartShardCopying> lockingQueue = getLockingQueue(msg.shardNumber, msg.copiedFrom);
-            StartShardCopying executedCommand = lockingQueue.remove();
-            assert executedCommand != null : "Shard " + msg.shardNumber + " was not locked before copied from " +
+            assert lockingQueue.size() > 0 : "Shard " + msg.shardNumber + " was not locked before copied from " +
                     msg.copiedFrom + " to " + msg.shardHolder;
+            StartShardCopying executedCommand = lockingQueue.remove();
             assert executedCommand.to == msg.shardHolder :
                     "Removed wrong shard copy task from locking queue: " + executedCommand;
 

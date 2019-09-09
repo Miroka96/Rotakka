@@ -18,9 +18,12 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.scalatest.junit.JUnitSuite;
+import scala.collection.JavaConverters;
 import scala.concurrent.duration.FiniteDuration;
 
+import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class GraphStoreTest extends JUnitSuite {
@@ -258,9 +261,9 @@ public class GraphStoreTest extends JUnitSuite {
         // tests must be run sequential to prevent following error:
         // akka.actor.InvalidActorNameException: actor name [graphStoreMasterProxy] is not unique!
         // uniqueness is required for real slaves to find the master
-        //getRegisterMeFromSlave();
-        //getShardRequestFromSlave();
-        //getShardRequestWithRealMaster();
+        getRegisterMeFromSlave();
+        getShardRequestFromSlave();
+        getShardRequestWithRealMaster();
         fullStoreWithInteractionAndLaterSlaves();
     }
 
@@ -306,12 +309,25 @@ public class GraphStoreTest extends JUnitSuite {
 
                 makeUsASlave(master, slave1, 1, null);
                 makeUsASlave(master, slave2, 1, slave1.ref());
+                GraphStoreMaster.StartShardCopying copyCommand = new GraphStoreMaster.StartShardCopying(0, slave1.ref(), slave2.ref());
+                master.tell(copyCommand, slave1.ref());
+                slave1.expectMsg(new GraphStoreSlave.StartedBuffering(copyCommand));
+                slave2.expectMsg(new GraphStoreSlave.StartedBuffering(copyCommand));
                 master.tell(new GraphStoreMaster.ShardReady(0, slave2.ref(), slave1.ref()), slave2.ref());
+                master.tell(new GraphStoreMaster.ShardReady(0, slave1.ref(), null), slave1.ref());
 
                 GraphStoreMaster.Edge edge = new GraphStoreMaster.Edge("edge1", "nodea", "nodeb", null);
                 master.tell(edge, getRef());
-                slave1.expectMsgClass(GraphStoreSlave.ShardedEdge.class);
-                slave2.expectMsgClass(GraphStoreSlave.ShardedEdge.class);
+
+                List<java.lang.Class<? extends Serializable>> messages = new ArrayList<>();
+                messages.add(GraphStoreSlave.ShardedEdge.class);
+                messages.add(ShardedSubGraph.class);
+                scala.collection.Seq<Class<? extends Serializable>> messageClasses =
+                        JavaConverters
+                                .asScalaBuffer(messages)
+                                .toSeq();
+                slave1.expectMsgAnyClassOf(messageClasses);
+                slave2.expectMsgAnyClassOf(messageClasses);
 
                 system.stop(master);
             }

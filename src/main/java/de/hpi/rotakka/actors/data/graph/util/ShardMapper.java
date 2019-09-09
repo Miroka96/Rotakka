@@ -87,8 +87,8 @@ public class ShardMapper {
     public void assign(@NotNull ActorRef slave, int shard, boolean ready) {
         String slaveName = slave.toString();
         int slashIndex = slaveName.lastIndexOf('/');
-        int hashIndex = slaveName.lastIndexOf('#');
-        slaveName = slaveName.substring(slashIndex + 1, hashIndex);
+        //int hashIndex = slaveName.lastIndexOf('#');
+        slaveName = slaveName.substring(slashIndex + 1, slaveName.length() - 1).replace('#', '_');
         String bufferName = GraphStoreBuffer.DEFAULT_NAME + "_" + shard + "_" + slaveName;
         ActorRef buffer;
         if (ready) {

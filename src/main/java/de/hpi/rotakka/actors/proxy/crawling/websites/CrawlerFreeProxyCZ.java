@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class CrawlerFreeProxyCZ extends Crawler {
-    String baseURL = "http://free-proxy.cz/en/proxylist/main/";
+    private String baseURL = "http://free-proxy.cz/en/proxylist/main/";
     // They do have CAPTCHA if one goes over page 6, be aware of that
     // Proof of concept class
 

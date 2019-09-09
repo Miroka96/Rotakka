@@ -13,7 +13,6 @@ import java.util.*;
 public class ShardMapper {
 
     private final int shardCount;
-    private final int duplicationLevel;
     private final ActorContext context;
     private Queue<Integer> shardCopiesToAssign = new LinkedList<>();
 
@@ -24,7 +23,6 @@ public class ShardMapper {
 
     public ShardMapper(int shardCount, int duplicationLevel, ActorContext context) {
         this.shardCount = shardCount;
-        this.duplicationLevel = duplicationLevel;
         this.context = context;
 
         shardToSlaves = new ArrayList<>(shardCount);
@@ -147,7 +145,7 @@ public class ShardMapper {
         return shardCopiesToAssign.size();
     }
 
-    public int getUnassignedShard() {
+    private int getUnassignedShard() {
         return shardCopiesToAssign.remove();
     }
 

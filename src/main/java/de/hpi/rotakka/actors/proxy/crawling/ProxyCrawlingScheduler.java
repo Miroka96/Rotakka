@@ -100,9 +100,7 @@ public class ProxyCrawlingScheduler extends AbstractReplicationActor {
     }
 
     private void handleRecrawlProxySite(RecrawlProxySite msg) {
-        for(String proxySite : proxySites) {
-            tempProxySites.add(proxySite);
-        }
+        tempProxySites.addAll(proxySites);
         assignWork();
     }
 

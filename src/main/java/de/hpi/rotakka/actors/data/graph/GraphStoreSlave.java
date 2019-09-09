@@ -7,6 +7,7 @@ import de.hpi.rotakka.actors.AbstractLoggingActor;
 import de.hpi.rotakka.actors.data.graph.GraphStoreMaster.Edge;
 import de.hpi.rotakka.actors.data.graph.GraphStoreMaster.SubGraph;
 import de.hpi.rotakka.actors.data.graph.GraphStoreMaster.Vertex;
+import de.hpi.rotakka.actors.data.graph.util.GraphFileOutput;
 import de.hpi.rotakka.actors.utils.Messages;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -202,6 +203,10 @@ public class GraphStoreSlave extends AbstractLoggingActor {
     public void preStart() {
         getMaster().tell(new Messages.RegisterMe(), getSelf());
     }
+
+    private HashMap<Integer, GraphFileOutput> shardFiles = new HashMap<>();
+    // TODO
+
 
     private void add(@NotNull KeyedSubGraph subGraph, @NotNull Vertex vertex) {
         if (subGraph.vertices.containsKey(vertex.key)) {

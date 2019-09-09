@@ -35,7 +35,7 @@ public class TwitterCrawler extends AbstractLoggingActor {
     public final static String DEFAULT_NAME = "twitterCrawler";
     private final static int PAGE_AJAX_WAIT = 500;
     private int proxyChangeCounter = Integer.MAX_VALUE;
-    private final int REQUESTS_PER_PROXY = 30;
+    private final int REQUESTS_PER_PROXY = settings.requestPerProxy;
 
     public static Props props() {
         return Props.create(TwitterCrawler.class);

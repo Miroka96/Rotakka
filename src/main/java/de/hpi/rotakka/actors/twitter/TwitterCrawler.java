@@ -79,7 +79,8 @@ public class TwitterCrawler extends AbstractLoggingActor {
         if (webDriver != null) {
             webDriver.close();
         }
-        if (proxy != null) {
+        if (proxy != null && settings.useProxys) {
+            log.info("Starting WebDriver with Proxy "+proxy.getIp());
             webDriver = WebDriverFactory.createWebDriver(log, this.context(), proxy);
         } else {
             log.info("Starting WebDriver without a Proxy");
@@ -152,7 +153,7 @@ public class TwitterCrawler extends AbstractLoggingActor {
         }
         log.info("Found " + newUsers.size() + " new users");
         MetricsListener.getSingleton(getContext()).tell(new MetricsListener.ScrapedTweetCount(foundTweets), getSelf());
-        if (newUsers.size() > 0) {
+        if (newUsers.size() > 0 && settings.extractUsers) {
             log.info("Found " + newUsers.size() + " new users");
             getSender().tell(new TwitterCrawlingScheduler.NewReference(newUsers), getSelf());
         }

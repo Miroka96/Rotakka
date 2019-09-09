@@ -164,7 +164,7 @@ abstract class ClusterSystem {
         system.actorOf(ProxyChecker.props(), ProxyChecker.DEFAULT_NAME+"-1");
         system.actorOf(ProxyCrawler.props(), ProxyCrawler.DEFAULT_NAME);
 
-        final int twitterCrawlerCount = 1;
+        final int twitterCrawlerCount = 3;
         for (int i = 0; i < twitterCrawlerCount; i++) {
             system.actorOf(TwitterCrawler.props(), TwitterCrawler.DEFAULT_NAME + "-" + i);
         }

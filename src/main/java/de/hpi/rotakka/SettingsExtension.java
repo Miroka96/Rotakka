@@ -16,10 +16,14 @@ public class SettingsExtension implements Extension {
     public Date endDate = null;
     public List<String> entryPointUsers;
     public int requestPerProxy;
+    public boolean extractUsers;
+    public boolean useProxys;
 
     public SettingsExtension(Config config) {
         entryPointUsers =  new ArrayList<>(Arrays.asList(config.getString("rotakka.twittercrawling.entryPointUsers").split(",")));
         requestPerProxy = config.getInt("rotakka.proxycrawling.requestPerProxy");
+        extractUsers = config.getBoolean("rotakka.twittercrawling.extractUsers");
+        useProxys = config.getBoolean("rotakka.twittercrawling.useProxys");
 
         try {
             startDate = new SimpleDateFormat("dd-MM-yyyy").parse(config.getString("rotakka.twittercrawling.startDate"));

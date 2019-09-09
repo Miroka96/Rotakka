@@ -10,6 +10,8 @@ import de.hpi.rotakka.actors.proxy.ProxyWrapper;
 import de.hpi.rotakka.actors.utils.Messages;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.Serializable;
 import java.util.*;
@@ -28,7 +30,7 @@ public class ProxyCheckingScheduler extends AbstractReplicationActor {
     private final Key<ORSet<String>> dataKey = ORSetKey.create("checked_proxy_list");
     private final SelfUniqueAddress selfUniqueAddress = DistributedData.get(getContext().getSystem()).selfUniqueAddress();
 
-    public static ActorSelection getSingleton(akka.actor.ActorContext context) {
+    public static ActorSelection getSingleton(@NotNull akka.actor.ActorContext context) {
         return context.actorSelection("/user/" + PROXY_NAME);
     }
 
@@ -58,6 +60,7 @@ public class ProxyCheckingScheduler extends AbstractReplicationActor {
             checkedProxy = proxy;
         }
 
+        @Contract(pure = true)
         public CheckedProxy getCheckedProxy() {
             return checkedProxy;
         }
@@ -103,7 +106,7 @@ public class ProxyCheckingScheduler extends AbstractReplicationActor {
         assignWork();
     }
 
-    private void handleIntegrateCheckedProxy(IntegrateCheckedProxy msg) {
+    private void handleIntegrateCheckedProxy(@NotNull IntegrateCheckedProxy msg) {
         // For some reason this extra message was necessary instead of just taking the CheckedProxy Object
         boolean newlyAdded = checkedProxies.add(msg.getCheckedProxy());
         if(newlyAdded) {

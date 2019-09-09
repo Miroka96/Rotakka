@@ -11,6 +11,7 @@ import de.hpi.rotakka.actors.utils.Messages;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -55,7 +56,7 @@ public class ProxyChecker extends AbstractLoggingActor {
                 .build();
     }
 
-    private void handleActorIdentity(ActorIdentity message) {
+    private void handleActorIdentity(@NotNull ActorIdentity message) {
         // Watch the TwitterCrawlingScheduler to be notified of its death
         getContext().watch(message.getRef());
     }
@@ -68,7 +69,7 @@ public class ProxyChecker extends AbstractLoggingActor {
     /**
      * This method will handle the CheckProxyAddress message
      */
-    private void handleCheckProxyAddress(CheckProxies msg) {
+    private void handleCheckProxyAddress(@NotNull CheckProxies msg) {
         List<ProxyWrapper> proxyList = msg.getProxyList();
         for(ProxyWrapper proxy : proxyList) {
             if (isReachable(proxy)) {
@@ -89,7 +90,8 @@ public class ProxyChecker extends AbstractLoggingActor {
     /**
      * This method will determine whether a proxy is reachable (i.e. ICMP check)
      */
-    private Boolean isReachable(ProxyWrapper proxy) {
+    @NotNull
+    private Boolean isReachable(@NotNull ProxyWrapper proxy) {
         URLConnection connection = null;
         try {
             InetAddress address = InetAddress.getByName(proxy.getIp());

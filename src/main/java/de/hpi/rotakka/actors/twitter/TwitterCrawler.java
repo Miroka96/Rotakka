@@ -163,7 +163,7 @@ public class TwitterCrawler extends AbstractLoggingActor {
         return webDriver.findElement(By.id("stream-items-id")).findElements(By.tagName("li")).size();
     }
 
-    private void handleActorIdentity(ActorIdentity message) {
+    private void handleActorIdentity(@NotNull ActorIdentity message) {
         // Watch the TwitterCrawlingScheduler to be notified of its death
         getContext().watch(message.getRef());
     }

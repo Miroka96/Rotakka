@@ -3,6 +3,7 @@ package de.hpi.rotakka.actors.utils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.jetbrains.annotations.NotNull;
 import org.jsoup.nodes.Element;
 
 import java.util.ArrayList;
@@ -35,7 +36,7 @@ public class Tweet {
 
     private String tweet_text;
 
-    public Tweet(Element tweetElement) {
+    public Tweet(@NotNull Element tweetElement) {
         tweet_id = tweetElement.attributes().get("data-tweet-id");
         item_id = tweetElement.attributes().get("data-item-id");
         permalink = tweetElement.attributes().get("data-permalink-path");
@@ -70,7 +71,7 @@ public class Tweet {
         tweet_text = tweetElement.children().select("div[class=content]").get(0).children().select("div[class=js-tweet-text-container]").text();
     }
 
-    public static Tweet createTweet(Vertex vertex) {
+    public static Tweet createTweet(@NotNull Vertex vertex) {
         ObjectMapper mapper = new ObjectMapper();
         return mapper.convertValue(vertex.getProperties(), Tweet.class);
     }

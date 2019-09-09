@@ -4,6 +4,7 @@ import com.sun.org.apache.xml.internal.security.utils.Base64;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -25,7 +26,7 @@ public class CheckedProxy extends ProxyWrapper {
         this.setProtocol(protocol);
     }
 
-    public CheckedProxy(ProxyWrapper proxyWrapper) {
+    public CheckedProxy(@NotNull ProxyWrapper proxyWrapper) {
         this.setIp(proxyWrapper.getIp());
         this.setPort(proxyWrapper.getPort());
         this.setAverageResponseTime(proxyWrapper.getAverageResponseTime());

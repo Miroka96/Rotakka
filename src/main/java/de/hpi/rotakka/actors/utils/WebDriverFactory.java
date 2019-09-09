@@ -3,6 +3,7 @@ package de.hpi.rotakka.actors.utils;
 import akka.actor.ActorContext;
 import akka.event.LoggingAdapter;
 import de.hpi.rotakka.actors.proxy.CheckedProxy;
+import org.jetbrains.annotations.Nullable;
 import org.openqa.selenium.SessionNotCreatedException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
@@ -10,6 +11,7 @@ import org.openqa.selenium.chrome.ChromeOptions;
 
 public class WebDriverFactory {
 
+    @Nullable
     public static WebDriver createWebDriver(LoggingAdapter logger, ActorContext context) {
         WebDriver webDriver;
         webDriver = createSeleniumWebDriver(logger, null);
@@ -23,6 +25,7 @@ public class WebDriverFactory {
         }
     }
 
+    @Nullable
     public static WebDriver createWebDriver(LoggingAdapter logger, ActorContext context, CheckedProxy proxy) {
         WebDriver webDriver;
         webDriver = createSeleniumWebDriver(logger, proxy);
@@ -36,6 +39,7 @@ public class WebDriverFactory {
         }
     }
 
+    @Nullable
     private static WebDriver createSeleniumWebDriver(LoggingAdapter logger, CheckedProxy proxy) {
         // HINT: Don't forget to .close() the WebDriver
         // HINT: Have only one WebDriver for all threads

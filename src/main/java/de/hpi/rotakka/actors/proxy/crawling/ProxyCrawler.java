@@ -62,7 +62,7 @@ public class ProxyCrawler extends AbstractActor {
         extract(task.crawlerName);
     }
 
-    private void handleActorIdentity(ActorIdentity message) {
+    private void handleActorIdentity(@NotNull ActorIdentity message) {
         // Watch the TwitterCrawlingScheduler to be notified of its death
         getContext().watch(message.getRef());
     }

@@ -7,6 +7,7 @@ import de.hpi.rotakka.actors.AbstractReplicationActor;
 import de.hpi.rotakka.actors.utils.Messages;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.Serializable;
 import java.time.Duration;
@@ -23,7 +24,7 @@ public class ProxyCrawlingScheduler extends AbstractReplicationActor {
     private final ArrayList<String> proxySites = new ArrayList<>(Arrays.asList("CrawlerUsProxy", "CrawlerFreeProxyCZ"));
     private ArrayList<String> tempProxySites = new ArrayList<>(Arrays.asList("CrawlerUsProxy", "CrawlerFreeProxyCZ"));
 
-    public static ActorSelection getSingleton(akka.actor.ActorContext context) {
+    public static ActorSelection getSingleton(@NotNull akka.actor.ActorContext context) {
         return context.actorSelection("/user/" + PROXY_NAME);
     }
 

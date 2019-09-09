@@ -11,6 +11,7 @@ import de.hpi.rotakka.actors.utils.Messages;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.jetbrains.annotations.NotNull;
 import org.omg.CosNaming.NamingContextPackage.NotFound;
 
 import java.io.Serializable;
@@ -52,7 +53,7 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
         return Props.create(TwitterCrawlingScheduler.class);
     }
 
-    public static ActorSelection getSingleton(akka.actor.ActorContext context) {
+    public static ActorSelection getSingleton(@NotNull akka.actor.ActorContext context) {
         return context.actorSelection("/user/" + PROXY_NAME);
     }
 
@@ -111,7 +112,7 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
     }
 
     // Add retweeted users & mentions to the data replicator to be crawled
-    private void handleNewReference(NewReference message) {
+    private void handleNewReference(@NotNull NewReference message) {
         for(String user : message.getReferences()) {
             if(!knownUsers.contains(user)) {
                 userQueue.add(user);
@@ -135,7 +136,7 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
         getSender().tell(new TwitterCrawler.CrawlURL(workPackets.pop(), storedProxies.get(new Random().nextInt(storedProxies.size()))), getSelf());
     }
 
-    private void handleReplicatorMessages(Replicator.GetSuccess message) {
+    private void handleReplicatorMessages(@NotNull Replicator.GetSuccess message) {
         // ToDo: This does not have any use as far as i see
         if(message.key().equals(usersQueueKey)) {
             Replicator.GetSuccess<ORSet<String>> getSuccessObject = message;
@@ -173,7 +174,7 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
         }
     }
 
-    private void handleNewCheckedProxies(ArrayList<CheckedProxy> proxyList) {
+    private void handleNewCheckedProxies(@NotNull ArrayList<CheckedProxy> proxyList) {
         for(CheckedProxy proxy : proxyList) {
             if(!storedProxies.contains(proxy)) {
                 storedProxies.add(proxy);
@@ -181,6 +182,7 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
         }
     }
 
+    @NotNull
     private ArrayList<String> createCrawlingLinks(String userID) {
         ArrayList<String> crawlingLinks = new ArrayList<>();
 

@@ -23,10 +23,7 @@ public class GraphStoreMaster extends AbstractLoggingActor {
     public static final String DEFAULT_NAME = "graphStoreMaster";
     public static final String PROXY_NAME = DEFAULT_NAME + "Proxy";
 
-    public static final int DEFAULT_SHARD_COUNT = 2 * 3 * 2 * 5 * 7 * 2; // creates even splits for up to 8 servers
     private final int shardCount;
-
-    public static final int DEFAULT_DUPLICATION_LEVEL = 2;
     private final int duplicationLevel;
 
     public static ActorSelection getSingleton(@NotNull akka.actor.ActorContext context) {
@@ -119,16 +116,8 @@ public class GraphStoreMaster extends AbstractLoggingActor {
 
     private final ShardMapper shardMapper;
 
-    public static Props props() {
-        return Props.create(GraphStoreMaster.class);
-    }
-
     public static Props props(int shardCount, int duplicationLevel) {
         return Props.create(GraphStoreMaster.class, shardCount, duplicationLevel);
-    }
-
-    public GraphStoreMaster() {
-        this(DEFAULT_SHARD_COUNT, DEFAULT_DUPLICATION_LEVEL);
     }
 
     public GraphStoreMaster(int shardCount, int duplicationLevel) {
@@ -163,11 +152,11 @@ public class GraphStoreMaster extends AbstractLoggingActor {
                 + " - success: " + shardMapper.tellShard(shardedEdge.shardNumber, shardedEdge, getSelf()));
     }
 
-    public static class ExtendableSubGraph {
+    static class ExtendableSubGraph {
         ArrayList<GraphStoreMaster.Vertex> vertices = new ArrayList<>();
         ArrayList<GraphStoreMaster.Edge> edges = new ArrayList<>();
 
-        public GraphStoreMaster.SubGraph toSubGraph() {
+        GraphStoreMaster.SubGraph toSubGraph() {
             GraphStoreMaster.Vertex[] newVertices = vertices.toArray(new GraphStoreMaster.Vertex[0]);
             GraphStoreMaster.Edge[] newEdges = edges.toArray(new GraphStoreMaster.Edge[0]);
             return new GraphStoreMaster.SubGraph(newVertices, newEdges);
@@ -306,11 +295,9 @@ public class GraphStoreMaster extends AbstractLoggingActor {
                 shardNumber,
                 k -> new HashMap<>());
 
-        Queue<StartShardCopying> lockingQueue = queues.computeIfAbsent(
+        return queues.computeIfAbsent(
                 actor,
                 ignore1 -> new LinkedList<>());
-
-        return lockingQueue;
     }
 
     private void safeStartCopying(@NotNull StartShardCopying cmd) {

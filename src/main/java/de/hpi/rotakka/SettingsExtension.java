@@ -18,7 +18,7 @@ public class SettingsExtension implements Extension {
     public final List<String> entryPointUsers;
     public final int requestPerProxy;
     public final boolean extractUsers;
-    public final boolean useProxys;
+    public final boolean useProxies;
 
     public final boolean createClusterListener;
     public final boolean createMetricsListener;
@@ -28,11 +28,14 @@ public class SettingsExtension implements Extension {
     public final int proxyCrawlingSlaveCount;
     public final int graphStoreSlaveCount;
 
+    public final int graphStoreShardCount;
+    public final int graphStoreDuplicationLevel;
+
     SettingsExtension(@NotNull Config config) throws Exception {
         entryPointUsers =  new ArrayList<>(Arrays.asList(config.getString("rotakka.twittercrawling.entryPointUsers").split(",")));
         requestPerProxy = config.getInt("rotakka.proxycrawling.requestPerProxy");
         extractUsers = config.getBoolean("rotakka.twittercrawling.extractUsers");
-        useProxys = config.getBoolean("rotakka.twittercrawling.useProxys");
+        useProxies = config.getBoolean("rotakka.twittercrawling.useProxies");
 
         try {
             startDate = new SimpleDateFormat("dd-MM-yyyy").parse(config.getString("rotakka.twittercrawling.startDate"));
@@ -51,5 +54,7 @@ public class SettingsExtension implements Extension {
         proxyCrawlingSlaveCount = config.getInt("rotakka.proxycrawling.slaveCount");
         graphStoreSlaveCount = config.getInt("rotakka.graphstore.slaveCount");
 
+        graphStoreShardCount = config.getInt("rotakka.graphstore.shardCount");
+        graphStoreDuplicationLevel = config.getInt("rotakka.graphstore.duplicationLevel");
     }
 }

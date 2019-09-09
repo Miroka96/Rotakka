@@ -79,7 +79,7 @@ public class TwitterCrawler extends AbstractLoggingActor {
         if (webDriver != null) {
             webDriver.close();
         }
-        if (proxy != null && settings.useProxys) {
+        if (proxy != null && settings.useProxies) {
             log.info("Starting WebDriver with Proxy "+proxy.getIp());
             webDriver = WebDriverFactory.createWebDriver(log, this.context(), proxy);
         } else {

@@ -77,7 +77,7 @@ public class ProxyCrawlingScheduler extends AbstractReplicationActor {
 
     // This functionality will be handled by the ProxyCheckingScheduler
     private void handleIntegrateNewProxies(IntegrateNewProxies msg) {
-        // ToDo
+        // ToDo delete? Seems like this method is never called, because the belonging message is created nowhere
     }
 
     private void handleFreeWorker() {

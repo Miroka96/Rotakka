@@ -141,7 +141,7 @@ abstract class ClusterSystem {
 
         system.actorOf(
                 ClusterSingletonManager.props(
-                        GraphStoreMaster.props(),
+                        GraphStoreMaster.props(settings.graphStoreShardCount, settings.graphStoreDuplicationLevel),
                         PoisonPill.getInstance(),
                         clusterSingletonManagerSettings),
                 GraphStoreMaster.DEFAULT_NAME);

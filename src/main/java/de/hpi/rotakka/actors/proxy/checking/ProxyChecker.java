@@ -1,6 +1,9 @@
 package de.hpi.rotakka.actors.proxy.checking;
 
+import akka.actor.ActorIdentity;
+import akka.actor.Identify;
 import akka.actor.Props;
+import akka.actor.Terminated;
 import de.hpi.rotakka.actors.AbstractLoggingActor;
 import de.hpi.rotakka.actors.proxy.CheckedProxy;
 import de.hpi.rotakka.actors.proxy.ProxyWrapper;
@@ -35,6 +38,7 @@ public class ProxyChecker extends AbstractLoggingActor {
     @Override
     public void preStart() {
         ProxyCheckingScheduler.getSingleton(context()).tell(new Messages.RegisterMe(), getSelf());
+        ProxyCheckingScheduler.getSingleton(getContext()).tell(new Identify(2019), getSelf());
     }
 
     @Override
@@ -46,7 +50,19 @@ public class ProxyChecker extends AbstractLoggingActor {
     public Receive createReceive() {
         return receiveBuilder()
                 .match(CheckProxies.class, this::handleCheckProxyAddress)
+                .match(ActorIdentity.class, this::handleActorIdentity)
+                .match(Terminated.class, this::handleDeadScheduler)
                 .build();
+    }
+
+    private void handleActorIdentity(ActorIdentity message) {
+        // Watch the TwitterCrawlingScheduler to be notified of its death
+        getContext().watch(message.getRef());
+    }
+
+    private void handleDeadScheduler(Terminated message) {
+        ProxyCheckingScheduler.getSingleton(getContext()).tell(new Messages.RegisterMe(), getSelf());
+        ProxyCheckingScheduler.getSingleton(getContext()).tell(new Identify(2019), getSelf());
     }
 
     /**

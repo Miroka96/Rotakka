@@ -71,7 +71,7 @@ public class TwitterCrawler extends AbstractLoggingActor {
     }
 
     private void handleDeadScheduler(Terminated message) {
-        TwitterCrawlingScheduler.getSingleton(context()).tell(new Messages.RegisterMe(), getSelf());
+        TwitterCrawlingScheduler.getSingleton(getContext()).tell(new Messages.RegisterMe(), getSelf());
         TwitterCrawlingScheduler.getSingleton(getContext()).tell(new Identify(1337), getSelf());
     }
 
@@ -170,7 +170,7 @@ public class TwitterCrawler extends AbstractLoggingActor {
     @Override
     public void preStart() throws Exception {
         super.preStart();
-        TwitterCrawlingScheduler.getSingleton(context()).tell(new Messages.RegisterMe(), getSelf());
+        TwitterCrawlingScheduler.getSingleton(getContext()).tell(new Messages.RegisterMe(), getSelf());
         TwitterCrawlingScheduler.getSingleton(getContext()).tell(new Identify(1337), getSelf());
     }
 

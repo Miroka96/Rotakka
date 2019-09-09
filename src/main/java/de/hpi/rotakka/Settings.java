@@ -17,6 +17,12 @@ public class Settings extends AbstractExtensionId<SettingsExtension> implements 
     }
 
     public SettingsExtension createExtension(ExtendedActorSystem system) {
-        return new SettingsExtension(system.settings().config());
+        try {
+            return new SettingsExtension(system.settings().config());
+        } catch (Exception e) {
+            e.printStackTrace();
+            system.terminate();
+            return null;
+        }
     }
 }

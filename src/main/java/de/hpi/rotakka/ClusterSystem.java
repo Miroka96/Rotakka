@@ -1,6 +1,5 @@
 package de.hpi.rotakka;
 
-import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.PoisonPill;
 import akka.cluster.Cluster;
@@ -43,7 +42,6 @@ abstract class ClusterSystem {
 
     @NotNull
     private ActorSystem createSystem() {
-
         // Create the ActorSystem
         final ActorSystem system = ActorSystem.create(MainApp.ACTOR_SYSTEM_NAME, this.config);
 
@@ -77,6 +75,7 @@ abstract class ClusterSystem {
 
 
     private final Config config;
+    private final SettingsExtension settings;
     protected final ActorSystem system;
     private final ClusterSingletonManagerSettings clusterSingletonManagerSettings;
     private final ClusterSingletonProxySettings clusterSingletonProxySettings;
@@ -92,6 +91,7 @@ abstract class ClusterSystem {
         this.masterport = masterport;
         this.config = createConfiguration();
         this.system = createSystem();
+        this.settings = Settings.SettingsProvider.get(system);
         this.clusterSingletonManagerSettings = ClusterSingletonManagerSettings.create(system);
         this.clusterSingletonProxySettings = ClusterSingletonProxySettings.create(system);
     }
@@ -103,19 +103,14 @@ abstract class ClusterSystem {
         });
     }
 
-    private ActorRef addProxy(String singletonName) {
+    private void addProxy(String singletonName, String proxyName) {
         String singletonManagerPath = "/user/" + singletonName;
-        return system.actorOf(
+        system.actorOf(
                 ClusterSingletonProxy.props(
                         singletonManagerPath,
                         clusterSingletonProxySettings
-                ), singletonName + "Proxy");
+                ), proxyName);
     }
-
-    ActorRef proxyCheckingScheduler;
-    ActorRef proxyCrawlingScheduler;
-    ActorRef twitterCrawlingScheduler;
-    ActorRef graphStoreMaster;
 
     private void addDefaultActors() {
         ////////////// Singleton Managers /////////////////
@@ -126,7 +121,7 @@ abstract class ClusterSystem {
                         PoisonPill.getInstance(),
                         clusterSingletonManagerSettings),
                 ProxyCheckingScheduler.DEFAULT_NAME);
-        proxyCheckingScheduler = addProxy(ProxyCheckingScheduler.DEFAULT_NAME);
+        addProxy(ProxyCheckingScheduler.DEFAULT_NAME, ProxyCheckingScheduler.PROXY_NAME);
 
         system.actorOf(
                 ClusterSingletonManager.props(
@@ -134,7 +129,7 @@ abstract class ClusterSystem {
                         PoisonPill.getInstance(),
                         clusterSingletonManagerSettings),
                 ProxyCrawlingScheduler.DEFAULT_NAME);
-        proxyCrawlingScheduler = addProxy(ProxyCrawlingScheduler.DEFAULT_NAME);
+        addProxy(ProxyCrawlingScheduler.DEFAULT_NAME, ProxyCrawlingScheduler.PROXY_NAME);
 
         system.actorOf(
                 ClusterSingletonManager.props(
@@ -142,7 +137,7 @@ abstract class ClusterSystem {
                         PoisonPill.getInstance(),
                         clusterSingletonManagerSettings),
                 TwitterCrawlingScheduler.DEFAULT_NAME);
-        twitterCrawlingScheduler = addProxy(TwitterCrawlingScheduler.DEFAULT_NAME);
+        addProxy(TwitterCrawlingScheduler.DEFAULT_NAME, TwitterCrawlingScheduler.PROXY_NAME);
 
         system.actorOf(
                 ClusterSingletonManager.props(
@@ -150,25 +145,35 @@ abstract class ClusterSystem {
                         PoisonPill.getInstance(),
                         clusterSingletonManagerSettings),
                 GraphStoreMaster.DEFAULT_NAME);
-        graphStoreMaster = addProxy(GraphStoreMaster.DEFAULT_NAME);
+        addProxy(GraphStoreMaster.DEFAULT_NAME, GraphStoreMaster.PROXY_NAME);
 
         // the replicator is automatically started by the DistributedData extension
-
         DistributedData.apply(system);
 
         //////////////// worker actors ///////////////////////////////////////
-        system.actorOf(ClusterListener.props(), ClusterListener.DEFAULT_NAME);
-        system.actorOf(MetricsListener.props(), MetricsListener.DEFAULT_NAME);
-        system.actorOf(GraphStoreSlave.props(), GraphStoreSlave.DEFAULT_NAME);
-        system.actorOf(ProxyChecker.props(), ProxyChecker.DEFAULT_NAME+"-0");
-        system.actorOf(ProxyChecker.props(), ProxyChecker.DEFAULT_NAME+"-1");
-        system.actorOf(ProxyCrawler.props(), ProxyCrawler.DEFAULT_NAME);
+        if (settings.createClusterListener) {
+            system.actorOf(ClusterListener.props(), ClusterListener.DEFAULT_NAME);
+        }
 
-        final int twitterCrawlerCount = 3;
-        for (int i = 0; i < twitterCrawlerCount; i++) {
+        if (settings.createMetricsListener) {
+            system.actorOf(MetricsListener.props(), MetricsListener.DEFAULT_NAME);
+        }
+
+        for (int i = 0; i < settings.proxyCheckingSlaveCount; i++) {
+            system.actorOf(ProxyChecker.props(), ProxyChecker.DEFAULT_NAME + "-" + i);
+        }
+
+        for (int i = 0; i < settings.proxyCrawlingSlaveCount; i++) {
+            system.actorOf(ProxyCrawler.props(), ProxyCrawler.DEFAULT_NAME + "-" + i);
+        }
+
+        for (int i = 0; i < settings.twitterCrawlingSlaveCount; i++) {
             system.actorOf(TwitterCrawler.props(), TwitterCrawler.DEFAULT_NAME + "-" + i);
         }
-        // add cli parameters to specify the worker counts
+
+        for (int i = 0; i < settings.graphStoreSlaveCount; i++) {
+            system.actorOf(GraphStoreSlave.props(), GraphStoreSlave.DEFAULT_NAME + "-" + i);
+        }
     }
 
     abstract void customStart();

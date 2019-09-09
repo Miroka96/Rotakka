@@ -1,7 +1,6 @@
 package de.hpi.rotakka.actors.proxy.crawling;
 
-import akka.actor.AbstractActor;
-import akka.actor.Props;
+import akka.actor.*;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import de.hpi.rotakka.actors.proxy.ProxyWrapper;
@@ -41,7 +40,8 @@ public class ProxyCrawler extends AbstractActor {
 
     @Override
     public void preStart() {
-        ProxyCrawlingScheduler.getSingleton(context()).tell(new Messages.RegisterMe(), getSelf());
+        ProxyCrawlingScheduler.getSingleton(getContext()).tell(new Messages.RegisterMe(), getSelf());
+        ProxyCrawlingScheduler.getSingleton(getContext()).tell(new Identify(42), getSelf());
     }
 
     @Override
@@ -51,13 +51,25 @@ public class ProxyCrawler extends AbstractActor {
 
     @Override
     public Receive createReceive() {
-        return receiveBuilder().match(
-                ExtractProxies.class, this::extract)
+        return receiveBuilder()
+                .match(ExtractProxies.class, this::extract)
+                .match(ActorIdentity.class, this::handleActorIdentity)
+                .match(Terminated.class, this::handleDeadScheduler)
                 .build();
     }
 
     private void extract(@NotNull ExtractProxies task) {
         extract(task.crawlerName);
+    }
+
+    private void handleActorIdentity(ActorIdentity message) {
+        // Watch the TwitterCrawlingScheduler to be notified of its death
+        getContext().watch(message.getRef());
+    }
+
+    private void handleDeadScheduler(Terminated message) {
+        ProxyCrawlingScheduler.getSingleton(getContext()).tell(new Messages.RegisterMe(), getSelf());
+        ProxyCrawlingScheduler.getSingleton(getContext()).tell(new Identify(42), getSelf());
     }
 
     // ToDo: We could think about micro-batching this instead of scraping all and then adding it

@@ -20,6 +20,7 @@ public class SettingsExtension implements Extension {
     public final boolean extractUsers;
     public final boolean useProxies;
     public final int dynamicContentWait;
+    public final int maxiumResponseTime;
 
     public final boolean createClusterListener;
     public final boolean createMetricsListener;
@@ -39,6 +40,7 @@ public class SettingsExtension implements Extension {
         extractUsers = config.getBoolean("rotakka.twittercrawling.extractUsers");
         useProxies = config.getBoolean("rotakka.twittercrawling.useProxies");
         dynamicContentWait = config.getInt("rotakka.twittercrawling.dynamicContentWait");
+        maxiumResponseTime = config.getInt("rotakka.proxychecking.maxiumResponseTime");
 
         try {
             startDate = new SimpleDateFormat("dd-MM-yyyy").parse(config.getString("rotakka.twittercrawling.startDate"));

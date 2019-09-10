@@ -74,7 +74,7 @@ public class ProxyChecker extends AbstractLoggingActor {
         for(ProxyWrapper proxy : proxyList) {
             if (isReachable(proxy)) {
                 long respTime = averageResponseTime(proxy);
-                if (respTime >= 0) {
+                if (respTime >= 0 && respTime < settings.maxiumResponseTime) {
                     proxy.setAverageResponseTime(respTime);
                     log.info("Proxy " + proxy.getIp() + " is working with ~" + proxy.getAverageResponseTime() + " ms");
                     CheckedProxy checkedProxy = new CheckedProxy(proxy);

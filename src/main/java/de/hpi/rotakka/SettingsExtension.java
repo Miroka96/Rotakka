@@ -19,6 +19,7 @@ public class SettingsExtension implements Extension {
     public final int requestPerProxy;
     public final boolean extractUsers;
     public final boolean useProxies;
+    public final int dynamicContentWait;
 
     public final boolean createClusterListener;
     public final boolean createMetricsListener;
@@ -34,9 +35,10 @@ public class SettingsExtension implements Extension {
 
     SettingsExtension(@NotNull Config config) throws Exception {
         entryPointUsers =  new ArrayList<>(Arrays.asList(config.getString("rotakka.twittercrawling.entryPointUsers").split(",")));
-        requestPerProxy = config.getInt("rotakka.proxycrawling.requestPerProxy");
+        requestPerProxy = config.getInt("rotakka.twittercrawling.requestPerProxy");
         extractUsers = config.getBoolean("rotakka.twittercrawling.extractUsers");
         useProxies = config.getBoolean("rotakka.twittercrawling.useProxies");
+        dynamicContentWait = config.getInt("rotakka.twittercrawling.dynamicContentWait");
 
         try {
             startDate = new SimpleDateFormat("dd-MM-yyyy").parse(config.getString("rotakka.twittercrawling.startDate"));

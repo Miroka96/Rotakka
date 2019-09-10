@@ -33,7 +33,7 @@ import java.util.NoSuchElementException;
 public class TwitterCrawler extends AbstractLoggingActor {
 
     public final static String DEFAULT_NAME = "twitterCrawler";
-    private final static int PAGE_AJAX_WAIT = 500;
+    private final int dynamicContentWait = settings.dynamicContentWait;
     private int proxyChangeCounter = Integer.MAX_VALUE;
     private final int REQUESTS_PER_PROXY = settings.requestPerProxy;
 
@@ -128,7 +128,7 @@ public class TwitterCrawler extends AbstractLoggingActor {
                 int tweetCount = getTweetCount();
                 ((JavascriptExecutor) webDriver).executeScript("window.scrollTo(0, document.body.scrollHeight)");
                 try {
-                    Thread.sleep(PAGE_AJAX_WAIT);
+                    Thread.sleep(dynamicContentWait);
                 } catch (InterruptedException e) {
                     log.error(e, "Was interrupted during waiting for loading of website " + url);
                 }

@@ -261,7 +261,7 @@ public class GraphStoreSlave extends AbstractLoggingActor {
             final GraphStoreStatistic statistic = new GraphStoreStatistic();
             switch (this.status) {
                 case CREATED: {
-                    statistic.assignedVertices++;
+                    statistic.createdVertices++;
                     break;
                 }
                 case UPDATED: {
@@ -290,7 +290,7 @@ public class GraphStoreSlave extends AbstractLoggingActor {
             final GraphStoreStatistic statistic = new GraphStoreStatistic();
             switch (this.status) {
                 case CREATED: {
-                    statistic.assignedEdges++;
+                    statistic.createdEdges++;
                     break;
                 }
                 case UPDATED: {
@@ -330,11 +330,8 @@ public class GraphStoreSlave extends AbstractLoggingActor {
         VertexAdditionResult additionResult = add(subGraph, shardedVertex.vertex);
 
         MetricsListener.getRef(getContext()).tell(additionResult.getShardStatistic(shardedVertex.shardNumber), getSelf());
-        switch (additionResult.status) {
-            case UPDATED:
-            case CREATED: {
+        if (additionResult.status == AdditionStatus.UPDATED || additionResult.status == AdditionStatus.CREATED) {
                 shardFiles.get(shardedVertex.shardNumber).add(additionResult.vertex);
-            }
         }
     }
 
@@ -362,38 +359,55 @@ public class GraphStoreSlave extends AbstractLoggingActor {
         EdgeAdditionResult additionResult = add(subGraph, shardedEdge.edge);
 
         MetricsListener.getRef(getContext()).tell(additionResult.getShardStatistic(shardedEdge.shardNumber), getSelf());
-        switch (additionResult.status) {
-            case UPDATED:
-            case CREATED: {
-                shardFiles.get(shardedEdge.shardNumber).add(additionResult.edge);
-            }
+        if (additionResult.status == AdditionStatus.UPDATED || additionResult.status == AdditionStatus.CREATED) {
+            shardFiles.get(shardedEdge.shardNumber).add(additionResult.edge);
         }
     }
 
+    @AllArgsConstructor
+    private static class SubGraphAdditionResult {
+        GraphStoreStatistic statistic;
+        SubGraph subGraph;
+
+        GraphShardStatistic getShardStatistic(int shardNumber) {
+            return new GraphShardStatistic(shardNumber, statistic);
+        }
+    }
+
+    @Contract("_, _ -> new")
     @NotNull
-    private GraphStoreStatistic add(@NotNull KeyedSubGraph keyedSubGraph, @NotNull SubGraph subGraph) {
+    private SubGraphAdditionResult add(@NotNull KeyedSubGraph keyedSubGraph, @NotNull SubGraph subGraph) {
         GraphStoreStatistic statistic = new GraphStoreStatistic();
 
+        GraphStoreMaster.ExtendableSubGraph newSubGraph = new GraphStoreMaster.ExtendableSubGraph();
         if (subGraph.vertices != null) {
             for (Vertex vertex : subGraph.vertices) {
-                statistic.add(add(keyedSubGraph, vertex).getStatistic());
+                VertexAdditionResult additionResult = add(keyedSubGraph, vertex);
+                if (additionResult.status == AdditionStatus.UPDATED || additionResult.status == AdditionStatus.CREATED) {
+                    newSubGraph.vertices.add(vertex);
+                }
+                statistic.add(additionResult.getStatistic());
             }
         }
         if (subGraph.edges != null) {
             for (Edge edge : subGraph.edges) {
-                statistic.add(add(keyedSubGraph, edge).getStatistic());
+                EdgeAdditionResult additionResult = add(keyedSubGraph, edge);
+                if (additionResult.status == AdditionStatus.UPDATED || additionResult.status == AdditionStatus.CREATED) {
+                    newSubGraph.edges.add(edge);
+                }
+                statistic.add(additionResult.getStatistic());
             }
         }
-        return statistic;
+        return new SubGraphAdditionResult(statistic, newSubGraph.toSubGraph());
     }
 
     private void add(@NotNull ShardedSubGraph shardedSubGraph) {
         log.debug("Adding subgraph to shard " + shardedSubGraph.shardNumber);
         KeyedSubGraph subGraph = shards.get(shardedSubGraph.shardNumber);
         assert subGraph != null : "shard " + shardedSubGraph.shardNumber + " is not assigned to slave " + getSelf();
-        GraphStoreStatistic statistic = add(subGraph, shardedSubGraph.subGraph);
-        MetricsListener.getRef(getContext()).tell(new GraphShardStatistic(shardedSubGraph.shardNumber, statistic), getSelf());
-        shardFiles.get(shardedSubGraph.shardNumber).add(shardedSubGraph.subGraph);
+        SubGraphAdditionResult additionResult = add(subGraph, shardedSubGraph.subGraph);
+        MetricsListener.getRef(getContext()).tell(additionResult.getShardStatistic(shardedSubGraph.shardNumber), getSelf());
+        shardFiles.get(shardedSubGraph.shardNumber).add(additionResult.subGraph);
     }
 
     private void take(@NotNull AssignedShards shards) {

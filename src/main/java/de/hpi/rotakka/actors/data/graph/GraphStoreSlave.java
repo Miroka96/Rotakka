@@ -4,6 +4,7 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
 import akka.actor.Props;
 import de.hpi.rotakka.actors.AbstractLoggingActor;
+import de.hpi.rotakka.actors.cluster.MetricsListener;
 import de.hpi.rotakka.actors.data.graph.GraphStoreMaster.Edge;
 import de.hpi.rotakka.actors.data.graph.GraphStoreMaster.SubGraph;
 import de.hpi.rotakka.actors.data.graph.GraphStoreMaster.Vertex;
@@ -14,6 +15,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -227,13 +229,13 @@ public class GraphStoreSlave extends AbstractLoggingActor {
         return output;
     }
 
-    @NotNull
+    @Nullable
     private Vertex add(@NotNull KeyedSubGraph subGraph, @NotNull Vertex vertex) {
         if (subGraph.vertices.containsKey(vertex.key)) {
             return merge(subGraph.vertices.get(vertex.key), vertex);
         } else {
             subGraph.vertices.put(vertex.key, vertex);
-            return vertex;
+            return null;
         }
     }
 
@@ -241,16 +243,28 @@ public class GraphStoreSlave extends AbstractLoggingActor {
         log.debug("Adding vertex " + shardedVertex.vertex.key + " to shard " + shardedVertex.shardNumber);
         KeyedSubGraph subGraph = shards.get(shardedVertex.shardNumber);
         assert subGraph != null : "shard " + shardedVertex.shardNumber + " is not assigned to slave " + getSelf();
-        shardFiles.get(shardedVertex.shardNumber).add(add(subGraph, shardedVertex.vertex));
+
+        MetricsListener.GraphStoreStatistic statistic = new MetricsListener.GraphStoreStatistic();
+
+        Vertex newVertex = add(subGraph, shardedVertex.vertex);
+        if (newVertex == null) {
+            statistic.assignedVertices = 1;
+            newVertex = shardedVertex.vertex;
+        } else {
+            statistic.updatedVertices = 1;
+        }
+
+        MetricsListener.getRef(getContext()).tell(new MetricsListener.GraphShardStatistic(shardedVertex.shardNumber, statistic), getSelf());
+        shardFiles.get(shardedVertex.shardNumber).add(newVertex);
     }
 
-    @NotNull
+    @Nullable
     private Edge add(@NotNull KeyedSubGraph subGraph, @NotNull Edge edge) {
         if (subGraph.edges.containsKey(edge.key)) {
             return merge(subGraph.edges.get(edge.key), edge);
         } else {
             subGraph.edges.put(edge.key, edge);
-            return edge;
+            return null;
         }
     }
 
@@ -258,30 +272,55 @@ public class GraphStoreSlave extends AbstractLoggingActor {
         log.debug("Adding edge " + shardedEdge.edge.key + " to shard " + shardedEdge.shardNumber);
         KeyedSubGraph subGraph = shards.get(shardedEdge.shardNumber);
         assert subGraph != null : "shard " + shardedEdge.shardNumber + " is not assigned to slave " + getSelf();
-        shardFiles.get(shardedEdge.shardNumber).add(add(subGraph, shardedEdge.edge));
+
+        Edge newEdge = add(subGraph, shardedEdge.edge);
+        MetricsListener.GraphStoreStatistic statistic = new MetricsListener.GraphStoreStatistic();
+
+        if (newEdge == null) {
+            newEdge = shardedEdge.edge;
+            statistic.assignedEdges = 1;
+        } else {
+            statistic.updatedEdges = 1;
+        }
+
+        MetricsListener.getRef(getContext()).tell(new MetricsListener.GraphShardStatistic(shardedEdge.shardNumber, statistic), getSelf());
+        shardFiles.get(shardedEdge.shardNumber).add(newEdge);
     }
 
     @NotNull
-    @Contract("_, _ -> param2")
-    private SubGraph add(@NotNull KeyedSubGraph keyedSubGraph, @NotNull SubGraph subGraph) {
+    private MetricsListener.GraphStoreStatistic add(@NotNull KeyedSubGraph keyedSubGraph, @NotNull SubGraph subGraph) {
+        MetricsListener.GraphStoreStatistic statistic = new MetricsListener.GraphStoreStatistic();
+
         if (subGraph.vertices != null) {
             for (Vertex vertex : subGraph.vertices) {
-                add(keyedSubGraph, vertex);
+                Vertex newVertex = add(keyedSubGraph, vertex);
+                if (newVertex == null) {
+                    statistic.assignedVertices++;
+                } else {
+                    statistic.updatedVertices++;
+                }
             }
         }
         if (subGraph.edges != null) {
             for (Edge edge : subGraph.edges) {
-                add(keyedSubGraph, edge);
+                Edge newEdge = add(keyedSubGraph, edge);
+                if (newEdge == null) {
+                    statistic.assignedEdges++;
+                } else {
+                    statistic.updatedEdges++;
+                }
             }
         }
-        return subGraph;
+        return statistic;
     }
 
     private void add(@NotNull ShardedSubGraph shardedSubGraph) {
         log.debug("Adding subgraph to shard " + shardedSubGraph.shardNumber);
         KeyedSubGraph subGraph = shards.get(shardedSubGraph.shardNumber);
         assert subGraph != null : "shard " + shardedSubGraph.shardNumber + " is not assigned to slave " + getSelf();
-        shardFiles.get(shardedSubGraph.shardNumber).add(add(subGraph, shardedSubGraph.subGraph));
+        MetricsListener.GraphStoreStatistic statistic = add(subGraph, shardedSubGraph.subGraph);
+        MetricsListener.getRef(getContext()).tell(new MetricsListener.GraphShardStatistic(shardedSubGraph.shardNumber, statistic), getSelf());
+        shardFiles.get(shardedSubGraph.shardNumber).add(shardedSubGraph.subGraph);
     }
 
     private void take(@NotNull AssignedShards shards) {

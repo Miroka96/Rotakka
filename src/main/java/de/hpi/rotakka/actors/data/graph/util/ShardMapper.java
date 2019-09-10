@@ -82,7 +82,6 @@ public class ShardMapper {
     }
 
     // TODO Graph Metric into MetricsListener
-    // Graph in Dateien backuppen
     // Paper schreiben
     // Cluster vorbereiten
 

@@ -229,7 +229,7 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
 
                 workPackets.addAll(createCrawlingLinks(user));
                 knownUsers.add(user);
-                MetricsListener.getSingleton(getContext()).tell(new MetricsListener.FinishedUser(), getSelf());
+                MetricsListener.getRef(getContext()).tell(new MetricsListener.FinishedUser(), getSelf());
             } else {
                 log.error("NO MORE WORK AVAILABLE; SHUTTING DOWN SYSTEM");
                 context().system().terminate();

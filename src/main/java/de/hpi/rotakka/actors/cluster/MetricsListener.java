@@ -16,6 +16,8 @@ import lombok.NoArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.Serializable;
+import java.util.HashMap;
+import java.util.Map;
 
 public class MetricsListener extends AbstractClusterActor {
 
@@ -25,9 +27,39 @@ public class MetricsListener extends AbstractClusterActor {
         return Props.create(MetricsListener.class);
     }
 
-    private final ClusterMetricsExtension extension = ClusterMetricsExtension.get(getContext().system());
+    private final ClusterMetricsExtension extension = ClusterMetricsExtension.get(system);
     private long scrapedTweets = 0;
     private long finishedUsers = 0;
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static final class GraphStoreStatistic implements Serializable {
+        public static final long serialVersionUID = 1L;
+        public int assignedVertices = 0;
+        public int updatedVertices = 0;
+        public int assignedEdges = 0;
+        public int updatedEdges = 0;
+
+        public void add(@NotNull GraphStoreStatistic other) {
+            this.assignedVertices += other.assignedVertices;
+            this.updatedVertices += other.updatedVertices;
+            this.assignedEdges += other.assignedEdges;
+            this.updatedEdges += other.updatedEdges;
+        }
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static final class GraphShardStatistic implements Serializable {
+        public static final long serialVersionUID = 1L;
+        public int shardNumber;
+        public GraphStoreStatistic statistic;
+    }
+
+    private Map<Integer, GraphStoreStatistic> shardStatistics = new HashMap<>();
+    private GraphStoreStatistic globalGraphStoreStatistic = new GraphStoreStatistic();
 
     @Data
     @NoArgsConstructor
@@ -42,7 +74,7 @@ public class MetricsListener extends AbstractClusterActor {
         public static final long serialVersionUID = 1L;
     }
 
-    public static ActorSelection getSingleton(@NotNull akka.actor.ActorContext context) {
+    public static ActorSelection getRef(@NotNull akka.actor.ActorContext context) {
         return context.actorSelection("/user/" + DEFAULT_NAME);
     }
 
@@ -63,6 +95,7 @@ public class MetricsListener extends AbstractClusterActor {
                 .match(CurrentClusterState.class, message -> {/*Ignore*/})
                 .match(ScrapedTweetCount.class, this::handleScrapedTweetCount)
                 .match(FinishedUser.class, msg -> finishedUsers++)
+                .match(GraphShardStatistic.class, this::add)
                 .build();
     }
 
@@ -72,6 +105,7 @@ public class MetricsListener extends AbstractClusterActor {
                 logHeap(nodeMetrics);
                 logCpu(nodeMetrics);
                 logTweetMetrics();
+                logGraphStoreMetrics();
             }
         }
     }
@@ -86,18 +120,40 @@ public class MetricsListener extends AbstractClusterActor {
     private void logCpu(NodeMetrics nodeMetrics) {
         Cpu cpu = StandardMetrics.extractCpu(nodeMetrics);
         if (cpu != null && cpu.systemLoadAverage().isDefined()) {
-            this.log.debug("Load: {} ({} processors)", cpu.systemLoadAverage().get(), cpu.processors());
+            log.debug("Load: {} ({} processors)", cpu.systemLoadAverage().get(), cpu.processors());
         }
     }
 
     private void logTweetMetrics() {
-        this.log.info("Total Scraped Tweets: {}", scrapedTweets);
-        this.log.info("Total Scraped Users: {}", finishedUsers);
+        log.info("Total Scraped Tweets: {}", scrapedTweets);
+        log.info("Total Scraped Users: {}", finishedUsers);
     }
 
-    private void handleScrapedTweetCount(ScrapedTweetCount message) {
+    private void handleScrapedTweetCount(@NotNull ScrapedTweetCount message) {
         if (Long.MAX_VALUE - scrapedTweets > message.tweetCount) {
             scrapedTweets += message.tweetCount;
         }
     }
+
+    private void add(@NotNull GraphShardStatistic shardStatistic) {
+        assert shardStatistic.statistic != null : "Received GraphShardStatistic with empty statistic field";
+        GraphStoreStatistic graphStoreStatistic = shardStatistics.computeIfAbsent(shardStatistic.shardNumber, ignore -> new GraphStoreStatistic());
+        graphStoreStatistic.add(shardStatistic.statistic);
+        globalGraphStoreStatistic.add(shardStatistic.statistic);
+    }
+
+    private void logGraphStoreMetrics() {
+        log.info("Assigned Vertices Count: {}", globalGraphStoreStatistic.assignedVertices);
+        log.info("Updated Vertices Count: {}", globalGraphStoreStatistic.updatedVertices);
+        log.info("Assigned Edges Count: {}", globalGraphStoreStatistic.assignedEdges);
+        log.info("Updated Edges Count: {}", globalGraphStoreStatistic.updatedEdges);
+
+        shardStatistics.forEach((shardNumber, shardStatistics) -> {
+            log.debug("Shard {}: Assigned Vertices Count: {}", shardNumber, shardStatistics.assignedVertices);
+            log.debug("Shard {}: Updated Vertices Count: {}", shardNumber, shardStatistics.updatedVertices);
+            log.debug("Shard {}: Assigned Edges Count: {}", shardNumber, shardStatistics.assignedEdges);
+            log.debug("Shard {}: Updated Edges Count: {}", shardNumber, shardStatistics.updatedEdges);
+        });
+    }
+
 }

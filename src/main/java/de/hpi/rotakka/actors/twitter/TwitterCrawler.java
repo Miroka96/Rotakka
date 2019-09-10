@@ -152,7 +152,7 @@ public class TwitterCrawler extends AbstractLoggingActor {
             foundTweets++;
         }
         log.info("Found " + newUsers.size() + " new users");
-        MetricsListener.getSingleton(getContext()).tell(new MetricsListener.ScrapedTweetCount(foundTweets), getSelf());
+        MetricsListener.getRef(getContext()).tell(new MetricsListener.ScrapedTweetCount(foundTweets), getSelf());
         if (newUsers.size() > 0 && settings.extractUsers) {
             log.info("Found " + newUsers.size() + " new users");
             getSender().tell(new TwitterCrawlingScheduler.NewReference(newUsers), getSelf());

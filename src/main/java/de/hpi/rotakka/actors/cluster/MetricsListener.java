@@ -36,18 +36,18 @@ public class MetricsListener extends AbstractClusterActor {
     @AllArgsConstructor
     public static final class GraphStoreStatistic implements Serializable {
         public static final long serialVersionUID = 1L;
-        public int assignedVertices = 0;
+        public int createdVertices = 0;
         public int updatedVertices = 0;
         public int untouchedVertices = 0;
-        public int assignedEdges = 0;
+        public int createdEdges = 0;
         public int updatedEdges = 0;
         public int untouchedEdges = 0;
 
         public void add(@NotNull GraphStoreStatistic other) {
-            this.assignedVertices += other.assignedVertices;
+            this.createdVertices += other.createdVertices;
             this.updatedVertices += other.updatedVertices;
             this.untouchedVertices += other.untouchedVertices;
-            this.assignedEdges += other.assignedEdges;
+            this.createdEdges += other.createdEdges;
             this.updatedEdges += other.updatedEdges;
             this.untouchedEdges += other.untouchedEdges;
         }
@@ -147,18 +147,18 @@ public class MetricsListener extends AbstractClusterActor {
     }
 
     private void logGraphStoreMetrics() {
-        log.info("Assigned Vertices Count: {}", globalGraphStoreStatistic.assignedVertices);
+        log.info("Created Vertices Count: {}", globalGraphStoreStatistic.createdVertices);
         log.info("Updated Vertices Count: {}", globalGraphStoreStatistic.updatedVertices);
         log.info("Untouched Vertices Count: {}", globalGraphStoreStatistic.untouchedVertices);
-        log.info("Assigned Edges Count: {}", globalGraphStoreStatistic.assignedEdges);
+        log.info("Created Edges Count: {}", globalGraphStoreStatistic.createdEdges);
         log.info("Updated Edges Count: {}", globalGraphStoreStatistic.updatedEdges);
         log.info("Untouched Edges Count: {}", globalGraphStoreStatistic.untouchedEdges);
 
         shardStatistics.forEach((shardNumber, shardStatistics) -> {
-            log.debug("Shard {}: Assigned Vertices Count: {}", shardNumber, shardStatistics.assignedVertices);
+            log.debug("Shard {}: Created Vertices Count: {}", shardNumber, shardStatistics.createdVertices);
             log.debug("Shard {}: Updated Vertices Count: {}", shardNumber, shardStatistics.updatedVertices);
             log.debug("Shard {}: Untouched Vertices Count: {}", shardNumber, shardStatistics.untouchedVertices);
-            log.debug("Shard {}: Assigned Edges Count: {}", shardNumber, shardStatistics.assignedEdges);
+            log.debug("Shard {}: Created Edges Count: {}", shardNumber, shardStatistics.createdEdges);
             log.debug("Shard {}: Updated Edges Count: {}", shardNumber, shardStatistics.updatedEdges);
             log.debug("Shard {}: Untouched Edges Count: {}", shardNumber, shardStatistics.untouchedEdges);
         });

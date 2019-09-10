@@ -170,8 +170,8 @@ public class GraphFileOutput {
     public void add(@NotNull GraphStoreMaster.Edge edge) {
         try {
             mapper.writeValue(edges, edge);
-            vertices.write('\n');
-            vertices.flush();
+            edges.write('\n');
+            edges.flush();
         } catch (IOException e) {
             log.error(e, "Could not store edge to shard storage file of shard " +
                     shardNumber + " of slave " + slaveIdentifier);

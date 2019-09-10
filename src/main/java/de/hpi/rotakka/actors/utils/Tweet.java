@@ -1,6 +1,9 @@
 package de.hpi.rotakka.actors.utils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import de.hpi.rotakka.actors.data.graph.GraphStoreMaster.Edge;
+import de.hpi.rotakka.actors.data.graph.GraphStoreMaster.ExtendableSubGraph;
+import de.hpi.rotakka.actors.data.graph.GraphStoreMaster.SubGraph;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.jetbrains.annotations.NotNull;
@@ -10,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static de.hpi.rotakka.actors.data.graph.GraphStoreMaster.Vertex;
 
@@ -84,5 +88,49 @@ public class Tweet {
         Map<String, Object> properties = mapper.convertValue(this, Map.class);
         v.setProperties(properties);
         return v;
+    }
+
+    public SubGraph toSubGraph() {
+        ExtendableSubGraph subGraph = new ExtendableSubGraph();
+
+        // tweet vertex
+        Vertex tweetVertex = this.toVertex();
+        subGraph.vertices.add(tweetVertex);
+
+        // creator vertex
+        User creator = new User();
+        creator.user_id = user_id;
+        creator.name = name;
+        creator.screen_name = screen_name;
+        Vertex creatorVertex = creator.toVertex();
+        subGraph.vertices.add(creatorVertex);
+
+        // created edge
+        Edge createdEdge = new Edge();
+        createdEdge.from = creatorVertex.key;
+        createdEdge.to = tweetVertex.key;
+        createdEdge.key = "created_" + screen_name + "_" + tweet_id;
+        subGraph.edges.add(createdEdge);
+
+        // referenced users vertices
+        List<Vertex> referencedUsersVertices = this.referenced_users.stream().map(screen_name -> {
+            User referencedUser = new User();
+            referencedUser.screen_name = screen_name;
+            return referencedUser.toVertex();
+        }).collect(Collectors.toList());
+        subGraph.vertices.addAll(referencedUsersVertices);
+
+        // references edges
+        List<Edge> referencesEdges = referencedUsersVertices.stream().map(referencedUser -> {
+            Edge references = new Edge();
+            references.from = tweetVertex.key;
+            references.to = referencedUser.key;
+            references.key = "references_" + tweet_id + "_" +
+                    referencedUser.properties.getOrDefault("screen_name", "null");
+            return references;
+        }).collect(Collectors.toList());
+        subGraph.edges.addAll(referencesEdges);
+
+        return subGraph.toSubGraph();
     }
 }

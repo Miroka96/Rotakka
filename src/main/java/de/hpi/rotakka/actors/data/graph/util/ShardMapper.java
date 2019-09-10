@@ -81,9 +81,9 @@ public class ShardMapper {
         return true;
     }
 
-    // TODO Graph Metric into MetricsListener
-    // Paper schreiben
+    // TODO Paper schreiben
     // Cluster vorbereiten
+    // Tweet to SubGraph
 
     public void assign(@NotNull ActorRef slave, int shard, boolean ready) {
         String slaveName = slave.toString();

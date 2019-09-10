@@ -148,7 +148,7 @@ public class TwitterCrawler extends AbstractLoggingActor {
             tweetDiv.children().select("div[class=content]");
             Tweet tweet = new Tweet(tweetDiv);
             newUsers.addAll(tweet.getReferenced_users());
-            GraphStoreMaster.getSingleton(getContext()).tell(tweet.toVertex(), getSelf());
+            GraphStoreMaster.getSingleton(getContext()).tell(tweet.toSubGraph(), getSelf());
             foundTweets++;
         }
         log.info("Found " + newUsers.size() + " new users");

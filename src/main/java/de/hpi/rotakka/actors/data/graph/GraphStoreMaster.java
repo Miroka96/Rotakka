@@ -35,8 +35,8 @@ public class GraphStoreMaster extends AbstractLoggingActor {
     @AllArgsConstructor
     public static final class Vertex implements Serializable {
         public static final long serialVersionUID = 1L;
-        String key;
-        Map<String, Object> properties;
+        public String key;
+        public Map<String, Object> properties;
     }
 
     @Data
@@ -44,10 +44,10 @@ public class GraphStoreMaster extends AbstractLoggingActor {
     @AllArgsConstructor
     public static final class Edge implements Serializable {
         public static final long serialVersionUID = 1L;
-        String key;
-        String from;
-        String to;
-        Map<String, Object> properties;
+        public String key;
+        public String from;
+        public String to;
+        public Map<String, Object> properties;
     }
 
     @Data
@@ -55,8 +55,8 @@ public class GraphStoreMaster extends AbstractLoggingActor {
     @AllArgsConstructor
     public static final class SubGraph implements Serializable {
         public static final long serialVersionUID = 1L;
-        Vertex[] vertices;
-        Edge[] edges;
+        public Vertex[] vertices;
+        public Edge[] edges;
     }
 
     @Data
@@ -152,11 +152,11 @@ public class GraphStoreMaster extends AbstractLoggingActor {
                 + " - success: " + shardMapper.tellShard(shardedEdge.shardNumber, shardedEdge, getSelf()));
     }
 
-    static class ExtendableSubGraph {
-        ArrayList<GraphStoreMaster.Vertex> vertices = new ArrayList<>();
-        ArrayList<GraphStoreMaster.Edge> edges = new ArrayList<>();
+    public static class ExtendableSubGraph {
+        public ArrayList<GraphStoreMaster.Vertex> vertices = new ArrayList<>();
+        public ArrayList<GraphStoreMaster.Edge> edges = new ArrayList<>();
 
-        GraphStoreMaster.SubGraph toSubGraph() {
+        public GraphStoreMaster.SubGraph toSubGraph() {
             GraphStoreMaster.Vertex[] newVertices = vertices.toArray(new GraphStoreMaster.Vertex[0]);
             GraphStoreMaster.Edge[] newEdges = edges.toArray(new GraphStoreMaster.Edge[0]);
             return new GraphStoreMaster.SubGraph(newVertices, newEdges);

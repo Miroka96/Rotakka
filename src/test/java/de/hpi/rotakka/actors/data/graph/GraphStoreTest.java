@@ -261,6 +261,7 @@ public class GraphStoreTest extends JUnitSuite {
         // tests must be run sequential to prevent following error:
         // akka.actor.InvalidActorNameException: actor name [graphStoreMasterProxy] is not unique!
         // uniqueness is required for real slaves to find the master
+
         getRegisterMeFromSlave();
         getShardRequestFromSlave();
         getShardRequestWithRealMaster();
@@ -361,7 +362,6 @@ public class GraphStoreTest extends JUnitSuite {
                 TestProbe us = new TestProbe(system);
 
                 ActorRef master = createMaster(2, 2, true);
-                //ActorRef forwarder = system.actorOf(ForwardActor.props(master), GraphStoreMaster.PROXY_NAME); // lies in user namespace
                 ActorRef slave1 = system.actorOf(GraphStoreSlave.props(), "Slave1");
                 ActorRef slave2 = system.actorOf(GraphStoreSlave.props(), "Slave2");
 

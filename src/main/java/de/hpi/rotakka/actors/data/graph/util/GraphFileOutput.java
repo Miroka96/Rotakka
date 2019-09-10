@@ -18,7 +18,8 @@ public class GraphFileOutput {
     final private String slaveIdentifier;
     final private int shardNumber;
 
-    final private String directoryPath;
+    final private String slavePath;
+    final private String shardPath;
     final private String verticesPath;
     final private String edgesPath;
 
@@ -29,11 +30,13 @@ public class GraphFileOutput {
 
     @NotNull
     private static String actorRefToIdentifier(@NotNull ActorRef actor) {
+        // an ActorRef looks like: Actor[akka://default/user/actorName#12312134]
+        // the last number can also be negative
         String slaveIdentifier = actor.toString();
         int lastSlashIndex = slaveIdentifier.lastIndexOf('/');
         slaveIdentifier = slaveIdentifier.substring(lastSlashIndex + 1, slaveIdentifier.length() - 1);
         int hashIndex = slaveIdentifier.lastIndexOf('#');
-        slaveIdentifier = slaveIdentifier.substring(0, hashIndex) + slaveIdentifier.substring(hashIndex + 1);
+        slaveIdentifier = slaveIdentifier.substring(0, hashIndex) + "-" + slaveIdentifier.substring(hashIndex);
         return slaveIdentifier;
     }
 
@@ -48,12 +51,13 @@ public class GraphFileOutput {
         this.shardNumber = shardNumber;
         this.log = log;
 
-        directoryPath = prefix + File.separator + slaveIdentifier + File.separator + shardNumber;
-        verticesPath = directoryPath + File.separator + "vertices.json";
-        edgesPath = directoryPath + File.separator + "edges.json";
+        slavePath = prefix + File.separator + slaveIdentifier;
+        shardPath = slavePath + File.separator + shardNumber;
+        verticesPath = shardPath + File.separator + "vertices.json";
+        edgesPath = shardPath + File.separator + "edges.json";
 
         try {
-            File directory = new File(directoryPath);
+            File directory = new File(shardPath);
             if (directory.mkdirs()) {
                 log.debug("Created storage directory " + directory.getAbsolutePath());
             } else {
@@ -130,23 +134,23 @@ public class GraphFileOutput {
             log.warning(edges.getAbsolutePath() + " did not exist");
         }
 
-        File shardDirectory = new File(directoryPath);
-        assert shardDirectory.isDirectory() : directoryPath + " should be the relative path of a directory  - vertices and edges will be stored in there";
+        File shardDirectory = new File(shardPath);
+        assert shardDirectory.isDirectory() : shardPath + " should be the relative path of a directory  - vertices and edges will be stored in there";
         if (Objects.requireNonNull(shardDirectory.list()).length == 0) {
             if (shardDirectory.delete()) {
                 log.debug("Deleted " + shardDirectory.getAbsolutePath());
+
+                File slaveDirectory = new File(slavePath);
+                assert slaveDirectory.isDirectory() : slavePath + " should be the relative path of a directory - shard directories will be stored in there";
+                if (Objects.requireNonNull(slaveDirectory.list()).length == 0) {
+                    if (slaveDirectory.delete()) {
+                        log.debug("Deleted " + slaveDirectory.getAbsolutePath());
+                    } else {
+                        log.info("Could not delete " + slaveDirectory.getAbsolutePath());
+                    }
+                }
             } else {
                 log.warning("Could not delete " + shardDirectory.getAbsolutePath());
-            }
-
-            File slaveDirectory = new File(slaveIdentifier);
-            assert shardDirectory.isDirectory() : directoryPath + " should be the relative path of a directory - shard directories will be stored in there";
-            if (Objects.requireNonNull(slaveDirectory.list()).length == 0) {
-                if (slaveDirectory.delete()) {
-                    log.debug("Deleted " + slaveDirectory.getAbsolutePath());
-                } else {
-                    log.info("Could not delete " + slaveDirectory.getAbsolutePath());
-                }
             }
         }
     }

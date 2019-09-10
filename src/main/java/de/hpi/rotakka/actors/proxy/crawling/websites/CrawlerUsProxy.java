@@ -60,7 +60,7 @@ public class CrawlerUsProxy extends Crawler {
                 try {
                     Thread.sleep(1000);
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    log.error(e, "Was interrupted during waiting");
                 }
             }
         }

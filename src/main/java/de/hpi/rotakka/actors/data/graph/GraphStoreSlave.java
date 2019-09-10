@@ -12,6 +12,7 @@ import de.hpi.rotakka.actors.utils.Messages;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.Serializable;
@@ -122,17 +123,21 @@ public class GraphStoreSlave extends AbstractLoggingActor {
         SubGraph subGraph;
     }
 
-
-    private static void merge(@NotNull Vertex into, @NotNull Vertex from) {
-        if (from.properties == null) return;
+    @NotNull
+    @Contract("_, _ -> param1")
+    private Vertex merge(@NotNull Vertex into, @NotNull Vertex from) {
+        if (from.properties == null) return into;
         if (into.properties == null) {
             into.properties = from.properties;
-            return;
+            return into;
         }
         into.properties.putAll(from.properties);
+        return into;
     }
 
-    private static void merge(@NotNull Edge into, @NotNull Edge from) {
+    @NotNull
+    @Contract("_, _ -> param1")
+    private Edge merge(@NotNull Edge into, @NotNull Edge from) {
         if (from.properties != null) {
             if (into.properties == null) {
                 into.properties = from.properties;
@@ -146,6 +151,7 @@ public class GraphStoreSlave extends AbstractLoggingActor {
         if (from.to != null) {
             into.to = from.to;
         }
+        return into;
     }
 
 
@@ -204,15 +210,30 @@ public class GraphStoreSlave extends AbstractLoggingActor {
         getMaster().tell(new Messages.RegisterMe(), getSelf());
     }
 
+    @Override
+    public void postStop() {
+        for (GraphFileOutput output : shardFiles.values()) {
+            output.close();
+        }
+    }
+
     private HashMap<Integer, GraphFileOutput> shardFiles = new HashMap<>();
-    // TODO
 
+    @NotNull
+    @Contract("_ -> new")
+    private GraphFileOutput createGraphFileOutput(int shardNumber) {
+        GraphFileOutput output = new GraphFileOutput(settings.graphStoreStoragePath, getSelf(), shardNumber, log);
+        shardFiles.put(shardNumber, output);
+        return output;
+    }
 
-    private void add(@NotNull KeyedSubGraph subGraph, @NotNull Vertex vertex) {
+    @NotNull
+    private Vertex add(@NotNull KeyedSubGraph subGraph, @NotNull Vertex vertex) {
         if (subGraph.vertices.containsKey(vertex.key)) {
-            merge(subGraph.vertices.get(vertex.key), vertex);
+            return merge(subGraph.vertices.get(vertex.key), vertex);
         } else {
             subGraph.vertices.put(vertex.key, vertex);
+            return vertex;
         }
     }
 
@@ -220,14 +241,16 @@ public class GraphStoreSlave extends AbstractLoggingActor {
         log.debug("Adding vertex " + shardedVertex.vertex.key + " to shard " + shardedVertex.shardNumber);
         KeyedSubGraph subGraph = shards.get(shardedVertex.shardNumber);
         assert subGraph != null : "shard " + shardedVertex.shardNumber + " is not assigned to slave " + getSelf();
-        add(subGraph, shardedVertex.vertex);
+        shardFiles.get(shardedVertex.shardNumber).add(add(subGraph, shardedVertex.vertex));
     }
 
-    private void add(@NotNull KeyedSubGraph subGraph, @NotNull Edge edge) {
+    @NotNull
+    private Edge add(@NotNull KeyedSubGraph subGraph, @NotNull Edge edge) {
         if (subGraph.edges.containsKey(edge.key)) {
-            merge(subGraph.edges.get(edge.key), edge);
+            return merge(subGraph.edges.get(edge.key), edge);
         } else {
             subGraph.edges.put(edge.key, edge);
+            return edge;
         }
     }
 
@@ -235,10 +258,12 @@ public class GraphStoreSlave extends AbstractLoggingActor {
         log.debug("Adding edge " + shardedEdge.edge.key + " to shard " + shardedEdge.shardNumber);
         KeyedSubGraph subGraph = shards.get(shardedEdge.shardNumber);
         assert subGraph != null : "shard " + shardedEdge.shardNumber + " is not assigned to slave " + getSelf();
-        add(subGraph, shardedEdge.edge);
+        shardFiles.get(shardedEdge.shardNumber).add(add(subGraph, shardedEdge.edge));
     }
 
-    private void add(KeyedSubGraph keyedSubGraph, @NotNull SubGraph subGraph) {
+    @NotNull
+    @Contract("_, _ -> param2")
+    private SubGraph add(@NotNull KeyedSubGraph keyedSubGraph, @NotNull SubGraph subGraph) {
         if (subGraph.vertices != null) {
             for (Vertex vertex : subGraph.vertices) {
                 add(keyedSubGraph, vertex);
@@ -249,13 +274,14 @@ public class GraphStoreSlave extends AbstractLoggingActor {
                 add(keyedSubGraph, edge);
             }
         }
+        return subGraph;
     }
 
     private void add(@NotNull ShardedSubGraph shardedSubGraph) {
         log.debug("Adding subgraph to shard " + shardedSubGraph.shardNumber);
         KeyedSubGraph subGraph = shards.get(shardedSubGraph.shardNumber);
         assert subGraph != null : "shard " + shardedSubGraph.shardNumber + " is not assigned to slave " + getSelf();
-        add(subGraph, shardedSubGraph.subGraph);
+        shardFiles.get(shardedSubGraph.shardNumber).add(add(subGraph, shardedSubGraph.subGraph));
     }
 
     private void take(@NotNull AssignedShards shards) {
@@ -272,6 +298,7 @@ public class GraphStoreSlave extends AbstractLoggingActor {
         sb.append(" has been assigned, ");
         if (shard.previousOwner == null) {
             shards.put(shard.shardNumber, new KeyedSubGraph());
+            createGraphFileOutput(shard.shardNumber);
             sb.append("taking it");
         } else {
             shard.previousOwner.tell(new ShardRequest(shard.shardNumber), getSelf());
@@ -335,6 +362,10 @@ public class GraphStoreSlave extends AbstractLoggingActor {
     private void receive(@NotNull SentShard shard) {
         log.debug("Received shard " + shard.shardNumber + " from " + getSender().toString());
         shards.put(shard.shardNumber, new KeyedSubGraph(shard.subGraph));
+
+        GraphFileOutput output = createGraphFileOutput(shard.shardNumber);
+        output.add(shard.subGraph);
+
         getSender().tell(new ReceivedShard(shard.shardNumber), getSelf());
         enableOwnShard(shard.shardNumber, getSender());
     }
@@ -347,5 +378,8 @@ public class GraphStoreSlave extends AbstractLoggingActor {
     private void delete(@NotNull ShardToDelete shard) {
         log.debug("Received delete instruction for shard " + shard.shardNumber);
         shards.remove(shard.shardNumber);
+        shardFiles.get(shard.shardNumber).close();
+        shardFiles.get(shard.shardNumber).delete();
+        shardFiles.remove(shard.shardNumber);
     }
 }

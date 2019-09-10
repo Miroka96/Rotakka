@@ -85,8 +85,7 @@ public class WebDriverFactory {
         try {
             return new ChromeDriver(options);
         } catch (SessionNotCreatedException e) {
-            logger.error("Selenium Session could not be created, terminating soon: " + e.getMessage());
-            e.printStackTrace();
+            logger.error(e, "Selenium Session could not be created, terminating soon");
             return null;
         }
     }

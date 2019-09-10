@@ -14,7 +14,7 @@ import java.util.logging.Level;
 
 public abstract class Crawler {
     public WebClient webClient;
-    LoggingAdapter log;
+    protected LoggingAdapter log;
 
     public Crawler(LoggingAdapter loggingAdapter) {
         this.log = loggingAdapter;

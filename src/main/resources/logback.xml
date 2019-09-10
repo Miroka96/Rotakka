@@ -32,7 +32,7 @@
         </rollingPolicy>
 
         <encoder>
-            <pattern>%d %p %c{1.} [%t] %m%n</pattern>
+            <pattern>[%d %5level] %100X{akkaSource:-local} | %m%n</pattern>
         </encoder>
     </appender>
 

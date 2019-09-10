@@ -130,7 +130,7 @@ public class TwitterCrawler extends AbstractLoggingActor {
                 try {
                     Thread.sleep(PAGE_AJAX_WAIT);
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    log.error(e, "Was interrupted during waiting for loading of website " + url);
                 }
                 if (tweetCount == getTweetCount()) {
                     log.info("Reached End of Page; Gathering Tweets");

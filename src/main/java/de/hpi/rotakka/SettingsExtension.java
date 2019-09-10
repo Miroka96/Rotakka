@@ -30,6 +30,7 @@ public class SettingsExtension implements Extension {
 
     public final int graphStoreShardCount;
     public final int graphStoreDuplicationLevel;
+    public final String graphStoreStoragePath;
 
     SettingsExtension(@NotNull Config config) throws Exception {
         entryPointUsers =  new ArrayList<>(Arrays.asList(config.getString("rotakka.twittercrawling.entryPointUsers").split(",")));
@@ -56,5 +57,6 @@ public class SettingsExtension implements Extension {
 
         graphStoreShardCount = config.getInt("rotakka.graphstore.shardCount");
         graphStoreDuplicationLevel = config.getInt("rotakka.graphstore.duplicationLevel");
+        graphStoreStoragePath = config.getString("rotakka.graphstore.storagePath");
     }
 }

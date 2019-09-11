@@ -58,7 +58,7 @@ public class ProxyChecker extends AbstractLoggingActor {
 
     private void handleActorIdentity(@NotNull ActorIdentity message) {
         // Watch the TwitterCrawlingScheduler to be notified of its death
-        getContext().watch(message.getRef());
+        message.getActorRef().ifPresent(actorRef -> getContext().watch(actorRef));
     }
 
     private void handleDeadScheduler(Terminated message) {

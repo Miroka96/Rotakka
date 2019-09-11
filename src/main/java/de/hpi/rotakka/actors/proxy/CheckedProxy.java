@@ -1,6 +1,5 @@
 package de.hpi.rotakka.actors.proxy;
 
-import com.sun.org.apache.xml.internal.security.utils.Base64;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -10,6 +9,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.util.Base64;
 import java.util.Date;
 
 @Data
@@ -36,7 +36,7 @@ public class CheckedProxy extends ProxyWrapper {
 
     public CheckedProxy(String seralizationString) {
         try {
-            byte b[] = Base64.decode(seralizationString.getBytes());
+            byte[] b = Base64.getDecoder().decode(seralizationString.getBytes());
             ByteArrayInputStream bi = new ByteArrayInputStream(b);
             ObjectInputStream si = new ObjectInputStream(bi);
             CheckedProxy obj = (CheckedProxy) si.readObject();
@@ -47,9 +47,8 @@ public class CheckedProxy extends ProxyWrapper {
             this.setProtocol(obj.getProtocol());
             this.setLastChecked(obj.getLastChecked());
         } catch (Exception e) {
-            System.out.println(e);
+            e.printStackTrace();
         }
-
     }
 
     public String serialize() {
@@ -58,9 +57,9 @@ public class CheckedProxy extends ProxyWrapper {
             ObjectOutputStream so = new ObjectOutputStream(bo);
             so.writeObject(this);
             so.flush();
-            return Base64.encode(bo.toByteArray());
+            return Base64.getEncoder().encodeToString(bo.toByteArray());
         } catch (Exception e) {
-            System.out.println(e);
+            e.printStackTrace();
         }
         return null;
     }

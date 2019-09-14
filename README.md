@@ -68,7 +68,7 @@ As mentioned above, Rotakka is split into several parts. In this section, we wil
 the most important facts.
 
 ### Top Level Files
-On the top level there are several files associated with starting Rotakka. Most imporantly, we see the 
+On the top level there are several files associated with starting Rotakka. Most importantly, we see the 
 ```MainApp``` class which is responsible for starting the system.
 
 ### Cluster

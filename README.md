@@ -59,5 +59,46 @@ Just import the project as Maven project.
 * EnvironmentVariables=... (set them as mentioned above)
 
 ### Useful Config Parameters
-(all others are defined ...)
+All other parameters regaring the system can be found in the ```rotakka.conf``` file within the resource 
+folder. A description of each parameter can be found in the config itself.
+
+## Project Structure
+
+As mentioned above, Rotakka is split into several parts. In this section, we will examine each package and explain
+the most important facts.
+
+### Top Level Files
+On the top level there are several files associated with starting Rotakka. Most imporantly, we see the 
+```MainApp``` class which is responsible for starting the system.
+
+### Cluster
+Within this package we have the ```ClusterListener``` and the ```MetricsListener```. Both actors are mostly used
+for logging and being able to extract the results such as Total Tweets from the logs. It is important to note that these
+are not cluster singletons, but exist on each node. This means that the outputs will have to be manually aggregated
+across the different nodes to get a complete picture.
+
+### Graph
+This package implements the Graph Building and Storing. It will not be further explained here because it has a
+separate and very detailed README.
+
+### Proxy
+This part of the codebase is responsible for the crawling of public proxies as well as for checking whether 
+these proxies fulfil the quality requirements which we impose on them. This package includes both 
+the ```checking```-package and the ```crawling```-package and some data classes. While
+both packages contain the actors already known from the paper, the ```crawling``` package also includes
+the code specific to the public proxy websites.
+
+### Twitter
+This package is responsible for crawling Twitter. It includes both the scheduler and the worker.
+
+### Utils
+This package includes several utility classes which are used throughout the project. Most importantly,
+it also includes the code to start the Selenium WebDriver.
+
+## Disclaimer
+Rotakka is a powerful system and can be used to scrape huge amounts of data within a short time frame. 
+We encourage any potential user to comply with the limitations set by the service which they intent to
+crawl. Most of these limitations can be found in the Terms of Service. We are not responsible for any 
+damage created by the misuse of our system.
+
 

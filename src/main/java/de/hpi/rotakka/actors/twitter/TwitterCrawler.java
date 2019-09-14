@@ -6,7 +6,7 @@ import akka.actor.Props;
 import akka.actor.Terminated;
 import de.hpi.rotakka.actors.AbstractLoggingActor;
 import de.hpi.rotakka.actors.cluster.MetricsListener;
-import de.hpi.rotakka.actors.data.graph.GraphStoreMaster;
+import de.hpi.rotakka.actors.graph.GraphStoreMaster;
 import de.hpi.rotakka.actors.proxy.CheckedProxy;
 import de.hpi.rotakka.actors.utils.Messages;
 import de.hpi.rotakka.actors.utils.Tweet;

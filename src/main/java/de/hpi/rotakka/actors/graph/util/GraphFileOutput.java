@@ -1,11 +1,11 @@
-package de.hpi.rotakka.actors.data.graph.util;
+package de.hpi.rotakka.actors.graph.util;
 
 import akka.actor.ActorRef;
 import akka.event.LoggingAdapter;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import de.hpi.rotakka.actors.data.graph.GraphStoreMaster;
+import de.hpi.rotakka.actors.graph.GraphStoreMaster;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;

@@ -1,4 +1,4 @@
-package de.hpi.rotakka.actors.data.graph;
+package de.hpi.rotakka.actors.graph;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
@@ -7,10 +7,10 @@ import de.hpi.rotakka.actors.AbstractLoggingActor;
 import de.hpi.rotakka.actors.cluster.MetricsListener;
 import de.hpi.rotakka.actors.cluster.MetricsListener.GraphShardStatistic;
 import de.hpi.rotakka.actors.cluster.MetricsListener.GraphStoreStatistic;
-import de.hpi.rotakka.actors.data.graph.GraphStoreMaster.Edge;
-import de.hpi.rotakka.actors.data.graph.GraphStoreMaster.SubGraph;
-import de.hpi.rotakka.actors.data.graph.GraphStoreMaster.Vertex;
-import de.hpi.rotakka.actors.data.graph.util.GraphFileOutput;
+import de.hpi.rotakka.actors.graph.GraphStoreMaster.Edge;
+import de.hpi.rotakka.actors.graph.GraphStoreMaster.SubGraph;
+import de.hpi.rotakka.actors.graph.GraphStoreMaster.Vertex;
+import de.hpi.rotakka.actors.graph.util.GraphFileOutput;
 import de.hpi.rotakka.actors.utils.Messages;
 import lombok.AllArgsConstructor;
 import lombok.Data;

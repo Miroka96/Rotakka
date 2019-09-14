@@ -1,4 +1,4 @@
-package de.hpi.rotakka.actors.data.graph;
+package de.hpi.rotakka.actors.graph;
 
 import de.hpi.rotakka.actors.utils.Tweet;
 import org.junit.Test;

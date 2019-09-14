@@ -1,10 +1,10 @@
-package de.hpi.rotakka.actors.data.graph.util;
+package de.hpi.rotakka.actors.graph.util;
 
 import akka.actor.ActorContext;
 import akka.actor.ActorRef;
 import akka.japi.Pair;
-import de.hpi.rotakka.actors.data.graph.GraphStoreBuffer;
-import de.hpi.rotakka.actors.data.graph.GraphStoreMaster.StartShardCopying;
+import de.hpi.rotakka.actors.graph.GraphStoreBuffer;
+import de.hpi.rotakka.actors.graph.GraphStoreMaster.StartShardCopying;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 

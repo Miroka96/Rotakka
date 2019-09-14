@@ -1,11 +1,11 @@
-package de.hpi.rotakka.actors.data.graph;
+package de.hpi.rotakka.actors.graph;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import de.hpi.rotakka.actors.AbstractLoggingActor;
-import de.hpi.rotakka.actors.data.graph.GraphStoreSlave.ShardedEdge;
-import de.hpi.rotakka.actors.data.graph.GraphStoreSlave.ShardedSubGraph;
-import de.hpi.rotakka.actors.data.graph.GraphStoreSlave.ShardedVertex;
+import de.hpi.rotakka.actors.graph.GraphStoreSlave.ShardedEdge;
+import de.hpi.rotakka.actors.graph.GraphStoreSlave.ShardedSubGraph;
+import de.hpi.rotakka.actors.graph.GraphStoreSlave.ShardedVertex;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

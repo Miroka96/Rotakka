@@ -66,10 +66,23 @@ In the future, the buffers might also be moved to a different server to take som
 
 ### GraphStoreSlave
 
+The GraphStoreSlaves are supposed to run once per system/server. They communicate only with the master and with other slaves.
+From the buffers they only receive sharded graph elements, which they add to their local shard copies.
 
+They are responsible of:
+* receiving sharded graph elements
+* holding their assigned shards in memory
+* backing up their assigned shards to disk
+* requesting a shard from another slave on assignment
+* sending a shard to another slave on request
+* receiving a shard from another slave
+* enabling their shard after a copy procedure at the master
+* deleting an assigned shard on request
+* adding sharded graph elements to the right shard
+* updating already existing graph elements
+* detecting when there has been no change to the previous graph element and, therefore, 
+preventing unnecessary duplication in the append-only shard storage file
 
-## Purpose
-
-
-
+The shard storage files are, by default, placed at "shards/\<actor name\>/\<shardNumber\>/" and are called vertices.json and edges.json
+The responsible class for the storage operation is called GraphFileOutput and could be replaced by any other storage backend.
 

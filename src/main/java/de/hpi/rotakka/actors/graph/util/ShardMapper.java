@@ -81,13 +81,7 @@ public class ShardMapper {
         return true;
     }
 
-    // TODO Paper schreiben
-    // Cluster vorbereiten
-
     public void assign(@NotNull ActorRef slave, int shard, boolean ready) {
-        String slaveName = slave.toString();
-        int slashIndex = slaveName.lastIndexOf('/');
-        slaveName = slaveName.substring(slashIndex + 1, slaveName.length() - 1).replace('#', '_');
         ActorRef buffer;
         if (ready) {
             buffer = context.actorOf(GraphStoreBuffer.props(shard, slave));

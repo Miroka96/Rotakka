@@ -1,9 +1,9 @@
 package de.hpi.rotakka.actors.utils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import de.hpi.rotakka.actors.data.graph.GraphStoreMaster.Edge;
-import de.hpi.rotakka.actors.data.graph.GraphStoreMaster.ExtendableSubGraph;
-import de.hpi.rotakka.actors.data.graph.GraphStoreMaster.SubGraph;
+import de.hpi.rotakka.actors.graph.GraphStoreMaster.Edge;
+import de.hpi.rotakka.actors.graph.GraphStoreMaster.ExtendableSubGraph;
+import de.hpi.rotakka.actors.graph.GraphStoreMaster.SubGraph;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.jetbrains.annotations.NotNull;
@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static de.hpi.rotakka.actors.data.graph.GraphStoreMaster.Vertex;
+import static de.hpi.rotakka.actors.graph.GraphStoreMaster.Vertex;
 
 @NoArgsConstructor
 @Data

@@ -1,7 +1,7 @@
 package de.hpi.rotakka.actors.utils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import de.hpi.rotakka.actors.data.graph.GraphStoreMaster;
+import de.hpi.rotakka.actors.graph.GraphStoreMaster;
 import lombok.Data;
 
 import java.util.Map;

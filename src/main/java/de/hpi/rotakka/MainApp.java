@@ -57,7 +57,6 @@ public class MainApp {
 
         static final int DEFAULT_MASTER_PORT = 7877;
         static final int DEFAULT_SLAVE_PORT = 7879;
-        static final int DEFAULT_WORKERS = 4;
     	
     	@Parameter(names = {"-h", "--host"}, description = "this machine's host name or IP to bind against")
         String host = this.getDefaultHost();
@@ -74,9 +73,6 @@ public class MainApp {
         int port = this.getDefaultPort();
 
         abstract int getDefaultPort();
-
-    	@Parameter(names = {"-w", "--workers"}, description = "number of workers to start locally", required = false)
-        int workers = DEFAULT_WORKERS;
     }
 
     @Parameters(commandDescription = "start a master actor system")

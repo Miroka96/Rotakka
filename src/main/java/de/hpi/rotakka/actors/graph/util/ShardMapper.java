@@ -1,10 +1,10 @@
-package de.hpi.rotakka.actors.data.graph.util;
+package de.hpi.rotakka.actors.graph.util;
 
 import akka.actor.ActorContext;
 import akka.actor.ActorRef;
 import akka.japi.Pair;
-import de.hpi.rotakka.actors.data.graph.GraphStoreBuffer;
-import de.hpi.rotakka.actors.data.graph.GraphStoreMaster.StartShardCopying;
+import de.hpi.rotakka.actors.graph.GraphStoreBuffer;
+import de.hpi.rotakka.actors.graph.GraphStoreMaster.StartShardCopying;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
@@ -81,13 +81,7 @@ public class ShardMapper {
         return true;
     }
 
-    // TODO Paper schreiben
-    // Cluster vorbereiten
-
     public void assign(@NotNull ActorRef slave, int shard, boolean ready) {
-        String slaveName = slave.toString();
-        int slashIndex = slaveName.lastIndexOf('/');
-        slaveName = slaveName.substring(slashIndex + 1, slaveName.length() - 1).replace('#', '_');
         ActorRef buffer;
         if (ready) {
             buffer = context.actorOf(GraphStoreBuffer.props(shard, slave));

@@ -88,12 +88,11 @@ public class ShardMapper {
         String slaveName = slave.toString();
         int slashIndex = slaveName.lastIndexOf('/');
         slaveName = slaveName.substring(slashIndex + 1, slaveName.length() - 1).replace('#', '_');
-        String bufferName = GraphStoreBuffer.DEFAULT_NAME + "_" + shard + "_" + slaveName;
         ActorRef buffer;
         if (ready) {
-            buffer = context.actorOf(GraphStoreBuffer.props(shard, slave), bufferName);
+            buffer = context.actorOf(GraphStoreBuffer.props(shard, slave));
         } else {
-            buffer = context.actorOf(GraphStoreBuffer.props(shard), bufferName);
+            buffer = context.actorOf(GraphStoreBuffer.props(shard));
         }
         slaveToShards.putIfAbsent(slave, new HashSet<>());
         slaveToShards.get(slave).add(shard);

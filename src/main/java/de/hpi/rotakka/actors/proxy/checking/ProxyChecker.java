@@ -71,25 +71,26 @@ public class ProxyChecker extends AbstractLoggingActor {
      */
     private void handleCheckProxyAddress(@NotNull CheckProxies msg) {
         List<ProxyWrapper> proxyList = msg.getProxyList();
-        for(ProxyWrapper proxy : proxyList) {
-            if (isReachable(proxy)) {
-                long respTime = averageResponseTime(proxy);
-                if (respTime >= 0 && respTime < settings.maxiumResponseTime) {
-                    proxy.setAverageResponseTime(respTime);
-                    log.info("Proxy " + proxy.getIp() + " is working with ~" + proxy.getAverageResponseTime() + " ms");
+        if(proxyList.size() > 0) {
+            for (ProxyWrapper proxy : proxyList) {
+                if (proxy != null && isReachable(proxy)) {
+                    long respTime = averageResponseTime(proxy);
+                    if (respTime >= 0 && respTime < settings.maxiumResponseTime) {
+                        proxy.setAverageResponseTime(respTime);
+                        log.info("Proxy " + proxy.getIp() + " is working with ~" + proxy.getAverageResponseTime() + " ms");
+                        CheckedProxy checkedProxy = new CheckedProxy(proxy);
+                        ProxyCheckingScheduler.getSingleton(getContext()).tell(new ProxyCheckingScheduler.IntegrateCheckedProxy(checkedProxy), getSelf());
+                        continue;
+                    } else {
+                        log.info("Proxy " + proxy.getIp() + " was either not giving a response time or was over the specified response time limit");
+                    }
+                } else {
+                    log.info("Proxy " + proxy.getIp() + " is disabled");
+                }
+                if (proxy.getClass().equals(CheckedProxy.class)) {
                     CheckedProxy checkedProxy = new CheckedProxy(proxy);
-                    ProxyCheckingScheduler.getSingleton(getContext()).tell(new ProxyCheckingScheduler.IntegrateCheckedProxy(checkedProxy), getSelf());
-                    continue;
+                    ProxyCheckingScheduler.getSingleton(getContext()).tell(new ProxyCheckingScheduler.RemoveCheckedProxy(checkedProxy), getSelf());
                 }
-                else {
-                    log.info("Proxy "+proxy.getIp()+" was either not giving a response time or was over the specified response time limit");
-                }
-            } else {
-                log.info("Proxy " + proxy.getIp() + " is disabled");
-            }
-            if(proxy.getClass().equals(CheckedProxy.class)) {
-                CheckedProxy checkedProxy = new CheckedProxy(proxy);
-                ProxyCheckingScheduler.getSingleton(getContext()).tell(new ProxyCheckingScheduler.RemoveCheckedProxy(checkedProxy), getSelf());
             }
         }
         ProxyCheckingScheduler.getSingleton(getContext()).tell(new ProxyCheckingScheduler.GetWork(), getSelf());
@@ -111,7 +112,7 @@ public class ProxyChecker extends AbstractLoggingActor {
                 Object content = connection.getContent();
                 return true;
             }
-        } catch(IOException e) {
+        } catch(Exception e) {
             return false;
         } finally {
             if (connection != null) {

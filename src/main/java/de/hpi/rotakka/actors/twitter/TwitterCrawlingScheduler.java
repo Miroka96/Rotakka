@@ -101,6 +101,10 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
 
         storedProxies.add(null);
         log.info("Generated "+workPackets.size()+" work packets");
+
+        final Replicator.ReadConsistency readMajority = new Replicator.ReadMajority(Duration.ofSeconds(10));
+        replicator.tell(new Replicator.Get<>(usersQueueKey, readMajority), getSelf());
+        replicator.tell(new Replicator.Get<>(crawledUsersKey, readMajority), getSelf());
     }
 
     private void handleRegisterMe(Messages.RegisterMe message) {
@@ -137,23 +141,15 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
     }
 
     private void handleReplicatorMessages(@NotNull Replicator.GetSuccess message) {
-        // ToDo: This does not have any use as far as i see
         if(message.key().equals(usersQueueKey)) {
             Replicator.GetSuccess<ORSet<String>> getSuccessObject = message;
-            Set<String> newUserSet = getSuccessObject.dataValue().getElements();
-            if(awaitingWork.size() > 0) {
-                ActorRef waitingActor = awaitingWork.get(0);
-                String nextUser = newUserSet.iterator().next();
-                Replicator.Update<ORSet<String>> update = new Replicator.Update<>(
-                        usersQueueKey,
-                        ORSet.create(),
-                        Replicator.writeLocal(),
-                        curr -> curr.remove(selfUniqueAddress, nextUser));
-                replicator.tell(update, getSelf());
-                waitingActor.tell(new TwitterCrawler.CrawlURL(nextUser, storedProxies.get(new Random().nextInt(storedProxies.size()))), this.getSelf());
+            Set<String> userQueueDataRep = getSuccessObject.dataValue().getElements();
+            if(userQueueDataRep.size() > userQueue.size()) {
+                // This means we must have restarted the Scheduler, therefore we will restore our state
+                userQueue = new LinkedList<>(userQueue);
             }
         }
-        if(message.key().equals(proxyListKey)) {
+        else if(message.key().equals(proxyListKey)) {
             log.info("Trying to deserialize Proxies");
             // Deserialize the Proxies and add them to the list
             Replicator.GetSuccess<ORSet<String>> getSuccessObject = message;
@@ -167,6 +163,14 @@ public class TwitterCrawlingScheduler extends AbstractReplicationActor {
             }
             else {
                 log.info("Replicator Set was empty, did not add anything");
+            }
+        }
+        else if(message.key().equals(crawledUsersKey)) {
+            Replicator.GetSuccess<ORSet<String>> getSuccessObject = message;
+            Set<String> crawledUsersDataRep = getSuccessObject.dataValue().getElements();
+            if(crawledUsersDataRep.size() > knownUsers.size()) {
+                // This means we must have restarted the Scheduler, therefore we will restore our state
+                knownUsers = new ArrayList<>(crawledUsersDataRep);
             }
         }
         else {

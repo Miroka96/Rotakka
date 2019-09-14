@@ -12,6 +12,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
+import org.omg.CosNaming.NamingContextPackage.NotFound;
 
 import java.io.Serializable;
 import java.time.Duration;
@@ -42,6 +43,8 @@ public class ProxyCheckingScheduler extends AbstractReplicationActor {
     @Override
     public void preStart() {
         system.scheduler().schedule(Duration.ofMinutes(30), Duration.ofMinutes(30), getSelf(), new ProxyCheckingScheduler.RecheckProxies(), system.dispatcher(), getSelf());
+        final Replicator.ReadConsistency readMajority = new Replicator.ReadMajority(Duration.ofSeconds(5));
+        replicator.tell(new Replicator.Get<>(dataKey, readMajority), getSelf());
     }
 
     @Data
@@ -106,6 +109,9 @@ public class ProxyCheckingScheduler extends AbstractReplicationActor {
                 .match(GiveCheckedProxySample.class, this::handleGiveCheckedProxySample)
                 .match(RecheckProxies.class, this::handleRecheckProxies)
                 .match(RemoveCheckedProxy.class, this::handleRemoveCheckedProxy)
+                .match(Replicator.GetSuccess.class, this::handleReplicatorMessages)
+                .match(Replicator.GetFailure.class, m -> log.error("Replicator couldn't get our data"))
+                .match(NotFound.class, m -> log.error("Replicator couldn't find key"))
                 .build();
     }
 
@@ -193,6 +199,20 @@ public class ProxyCheckingScheduler extends AbstractReplicationActor {
                 Replicator.writeLocal(),
                 curr -> curr.remove(selfUniqueAddress, proxy.serialize()));
         replicator.tell(update, getSelf());
+    }
+
+    private void handleReplicatorMessages(@NotNull Replicator.GetSuccess message) {
+        if(message.key().equals(dataKey)) {
+            Replicator.GetSuccess<ORSet<CheckedProxy>> getSuccessObject = message;
+            Set<CheckedProxy> checkedProxiesDataRep = getSuccessObject.dataValue().getElements();
+            if(checkedProxiesDataRep.size() > checkedProxies.size()) {
+                // This means we must have restarted the Scheduler, therefore we will restore our state
+                checkedProxies = new HashSet<>(checkedProxiesDataRep);
+            }
+        }
+        else {
+            log.error("Could not handle replicator success message");
+        }
     }
 
     private void remove(Messages.UnregisterMe msg) {

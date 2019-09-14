@@ -67,7 +67,7 @@ public class ProxyChecker extends AbstractLoggingActor {
     }
 
     /**
-     * This method will handle the CheckProxyAddress message
+     * This method will handle the CheckProxyAddress message. It will also recheck proxies.
      */
     private void handleCheckProxyAddress(@NotNull CheckProxies msg) {
         List<ProxyWrapper> proxyList = msg.getProxyList();
@@ -79,12 +79,20 @@ public class ProxyChecker extends AbstractLoggingActor {
                     log.info("Proxy " + proxy.getIp() + " is working with ~" + proxy.getAverageResponseTime() + " ms");
                     CheckedProxy checkedProxy = new CheckedProxy(proxy);
                     ProxyCheckingScheduler.getSingleton(getContext()).tell(new ProxyCheckingScheduler.IntegrateCheckedProxy(checkedProxy), getSelf());
+                    continue;
+                }
+                else {
+                    log.info("Proxy "+proxy.getIp()+" was either not giving a response time or was over the specified response time limit");
                 }
             } else {
                 log.info("Proxy " + proxy.getIp() + " is disabled");
-                ProxyCheckingScheduler.getSingleton(getContext()).tell(new ProxyCheckingScheduler.GetWork(), getSelf());
+            }
+            if(proxy.getClass().equals(CheckedProxy.class)) {
+                CheckedProxy checkedProxy = new CheckedProxy(proxy);
+                ProxyCheckingScheduler.getSingleton(getContext()).tell(new ProxyCheckingScheduler.RemoveCheckedProxy(checkedProxy), getSelf());
             }
         }
+        ProxyCheckingScheduler.getSingleton(getContext()).tell(new ProxyCheckingScheduler.GetWork(), getSelf());
     }
 
     /**

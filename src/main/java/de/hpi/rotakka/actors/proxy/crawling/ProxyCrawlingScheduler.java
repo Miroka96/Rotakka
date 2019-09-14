@@ -39,12 +39,6 @@ public class ProxyCrawlingScheduler extends AbstractReplicationActor {
 
     @Data
     @AllArgsConstructor
-    public static final class IntegrateNewProxies implements Serializable {
-        public static final long serialVersionUID = 1L;
-    }
-
-    @Data
-    @AllArgsConstructor
     public static final class FinishedScraping implements Serializable {
         public static final long serialVersionUID = 1L;
     }
@@ -60,7 +54,6 @@ public class ProxyCrawlingScheduler extends AbstractReplicationActor {
         return receiveBuilder()
                 .match(Messages.RegisterMe.class, this::add)
                 .match(FinishedScraping.class, this::handleFinishedScraping)
-                .match(IntegrateNewProxies.class, this::handleIntegrateNewProxies)
                 .match(RecrawlProxySite.class, this::handleRecrawlProxySite)
                 .build();
     }
@@ -75,10 +68,6 @@ public class ProxyCrawlingScheduler extends AbstractReplicationActor {
         handleFreeWorker();
     }
 
-    // This functionality will be handled by the ProxyCheckingScheduler
-    private void handleIntegrateNewProxies(IntegrateNewProxies msg) {
-        // ToDo delete? Seems like this method is never called, because the belonging message is created nowhere
-    }
 
     private void handleFreeWorker() {
         if(tempProxySites.size() > 0) {

@@ -14,6 +14,7 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.Serializable;
+import java.time.Duration;
 import java.util.*;
 
 public class ProxyCheckingScheduler extends AbstractReplicationActor {
@@ -38,6 +39,11 @@ public class ProxyCheckingScheduler extends AbstractReplicationActor {
         return Props.create(ProxyCheckingScheduler.class);
     }
 
+    @Override
+    public void preStart() {
+        system.scheduler().schedule(Duration.ofMinutes(30), Duration.ofMinutes(30), getSelf(), new ProxyCheckingScheduler.RecheckProxies(), system.dispatcher(), getSelf());
+    }
+
     @Data
     @AllArgsConstructor
     public static final class GetWork implements Serializable {
@@ -46,8 +52,31 @@ public class ProxyCheckingScheduler extends AbstractReplicationActor {
 
     @Data
     @AllArgsConstructor
+    public static final class RecheckProxies implements Serializable {
+        public static final long serialVersionUID = 1L;
+    }
+
+
+    @Data
+    @AllArgsConstructor
     public static final class GiveCheckedProxySample implements Serializable {
         public static final long serialVersionUID = 1L;
+    }
+
+    @Data
+    @AllArgsConstructor
+    public static final class RemoveCheckedProxy implements Serializable {
+        public static final long serialVersionUID = 1L;
+        public static CheckedProxy checkedProxy;
+
+        public RemoveCheckedProxy(CheckedProxy proxy) {
+            checkedProxy = proxy;
+        }
+
+        @Contract(pure = true)
+        public CheckedProxy getCheckedProxy() {
+            return checkedProxy;
+        }
     }
 
     @Data
@@ -72,10 +101,11 @@ public class ProxyCheckingScheduler extends AbstractReplicationActor {
                 .match(Messages.RegisterMe.class, this::add)
                 .match(Messages.UnregisterMe.class, this::remove)
                 .match(ProxyWrapper.class, this::add)
-                .match(CheckedProxy.class, this::add)
                 .match(GetWork.class, this::handleGetWork)
                 .match(IntegrateCheckedProxy.class, this::handleIntegrateCheckedProxy)
                 .match(GiveCheckedProxySample.class, this::handleGiveCheckedProxySample)
+                .match(RecheckProxies.class, this::handleRecheckProxies)
+                .match(RemoveCheckedProxy.class, this::handleRemoveCheckedProxy)
                 .build();
     }
 
@@ -107,20 +137,22 @@ public class ProxyCheckingScheduler extends AbstractReplicationActor {
     }
 
     private void handleIntegrateCheckedProxy(@NotNull IntegrateCheckedProxy msg) {
-        // For some reason this extra message was necessary instead of just taking the CheckedProxy Object
-        boolean newlyAdded = checkedProxies.add(msg.getCheckedProxy());
-        if(newlyAdded) {
-            log.info("Trying to add CheckedProxies to the DataReplicator");
-            Replicator.Update<ORSet<String>> update = new Replicator.Update<>(
-                    dataKey,
-                    ORSet.create(),
-                    Replicator.writeLocal(),
-                    curr -> curr.add(selfUniqueAddress, msg.getCheckedProxy().serialize()));
-            replicator.tell(update, getSelf());
-        }
-        if(awaitingCheckedProxies.size() > 0) {
-            for(ActorRef key : awaitingCheckedProxies.keySet()) {
-                handleGiveCheckedProxySample(awaitingCheckedProxies.get(key));
+        CheckedProxy checkedProxy = msg.getCheckedProxy();
+        if(!checkedProxy.isRechecking()) {
+            boolean newlyAdded = checkedProxies.add(checkedProxy);
+            if(newlyAdded) {
+                log.info("Trying to add CheckedProxies to the DataReplicator");
+                Replicator.Update<ORSet<String>> update = new Replicator.Update<>(
+                        dataKey,
+                        ORSet.create(),
+                        Replicator.writeLocal(),
+                        curr -> curr.add(selfUniqueAddress, msg.getCheckedProxy().serialize()));
+                replicator.tell(update, getSelf());
+            }
+            if(awaitingCheckedProxies.size() > 0) {
+                for(ActorRef key : awaitingCheckedProxies.keySet()) {
+                    handleGiveCheckedProxySample(awaitingCheckedProxies.get(key));
+                }
             }
         }
         assignWork();
@@ -139,6 +171,28 @@ public class ProxyCheckingScheduler extends AbstractReplicationActor {
             }
             sender().tell(sample, getSelf());
         }
+    }
+
+    private void handleRecheckProxies(RecheckProxies message) {
+        Iterator<CheckedProxy> proxyIterator = checkedProxies.iterator();
+        while(proxyIterator.hasNext()) {
+            CheckedProxy checkedProxy = proxyIterator.next();
+            checkedProxy.setRechecking(true);
+            proxiesToCheck.add(checkedProxy);
+        }
+    }
+
+    private void handleRemoveCheckedProxy(RemoveCheckedProxy message) {
+        CheckedProxy proxy = message.getCheckedProxy();
+        proxy.setRechecking(false);
+        checkedProxies.remove(proxy);
+        log.info("Trying to remove a CheckedProxies to the DataReplicator");
+        Replicator.Update<ORSet<String>> update = new Replicator.Update<>(
+                dataKey,
+                ORSet.create(),
+                Replicator.writeLocal(),
+                curr -> curr.remove(selfUniqueAddress, proxy.serialize()));
+        replicator.tell(update, getSelf());
     }
 
     private void remove(Messages.UnregisterMe msg) {

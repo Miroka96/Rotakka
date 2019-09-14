@@ -17,6 +17,7 @@ import java.util.Date;
 @NoArgsConstructor
 public class CheckedProxy extends ProxyWrapper {
     public static final long serialVersionUID = 1L;
+    public boolean rechecking = false;
     Date lastChecked;
 
     // Manual Creation Constructor
@@ -27,6 +28,9 @@ public class CheckedProxy extends ProxyWrapper {
     }
 
     public CheckedProxy(@NotNull ProxyWrapper proxyWrapper) {
+        if(proxyWrapper.getClass().equals(CheckedProxy.class)) {
+            this.setRechecking(true);
+        }
         this.setIp(proxyWrapper.getIp());
         this.setPort(proxyWrapper.getPort());
         this.setAverageResponseTime(proxyWrapper.getAverageResponseTime());
